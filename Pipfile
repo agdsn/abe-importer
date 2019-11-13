@@ -1,0 +1,18 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+pytest = "*"
+mypy = "*"
+ipython = "*"
+pycroft-abe-importer = {editable = true,path = "."}
+
+[packages]
+click="*"
+sqlalchemy = "*"
+pycroft = {editable = true,git = "git://github.com/agdsn/pycroft.git",ref = "develop"}
+
+[requires]
+python_version="3.7"
