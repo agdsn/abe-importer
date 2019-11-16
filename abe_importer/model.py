@@ -45,8 +45,9 @@ class Access(Base):
 
 
 class Account(Base):
-    __tablename__ = 'account'
+    __tablename__ = 'imp_account'
     account = Column(String, primary_key=True)
+    system_account = Column(Boolean)
     name = Column(String)
     # TODO etry_date etc.
     access_id = Column('access', Integer, ForeignKey(Access.id))
@@ -134,7 +135,7 @@ class DisableCategory(Base):
      
 
 class ExternalResidence(Base):
-    __tablename__ = 'external_residence'
+    __tablename__ = 'imp_external_residence'
     account_name = account_fkey(primary_key=True)
     account = relationship(Account, backref=backref('residence', uselist=False))
     street = Column(String)
@@ -203,8 +204,10 @@ class TrafficQuota(Base):
     
 # update_notice probably not relevant
 class Rights(Base):
-    __tablename__ = 'usermanagement_rights'
+    __tablename__ = 'imp_rights'
     account_name = account_fkey(primary_key=True)
     account = relationship(Account, backref=backref('rights'))
     rights = Column(Integer)
-    
+    mgmt = Column(Boolean)
+    finances = Column(Boolean)
+    administration = Column(Boolean)
