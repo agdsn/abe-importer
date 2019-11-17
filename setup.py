@@ -17,7 +17,7 @@ DESCRIPTION = 'An LDAP CLI so simple that even bass players can use it.'
 URL = 'https://gitlab.com/AGDSN/pycroft-abe-importer'
 EMAIL = 'services@lists.agdsn.de'
 AUTHOR = 'AG DSN'
-REQUIRES_PYTHON = '>=3.6.0'
+REQUIRES_PYTHON = '>=3.7.0'  # 3.7 because of `dataclasses` being in the stdlib
 VERSION = 'UNSET'
 
 # What packages are required for this module to be executed?
@@ -120,7 +120,6 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy'
