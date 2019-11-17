@@ -22,7 +22,7 @@ def do_import(abe_session: Session, logger: Logger):
 
         new_objects = func(ctx, data)
 
-        obj_counter = Counter([type(ob).__name__ for ob in new_objects])
+        obj_counter = Counter((type(ob).__name__ for ob in new_objects))
         details = ", ".join([f"{obj}: {num}" for obj, num in obj_counter.items()])
         logger.info(f"  ...{func.__name__} ({details}).")
         objs.extend(new_objects)
