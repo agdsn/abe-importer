@@ -25,5 +25,3 @@ def do_import(abe_session: Session, logger: Logger):
         objs.extend(new_objects)
 
     return objs
-
-
