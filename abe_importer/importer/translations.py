@@ -32,3 +32,42 @@ def translate_building(ctx: Context, data: IntermediateData) -> List[PycroftBase
         objs.append(new_building)
 
     return objs
+
+
+@reg.provides(pycroft_model.Address)
+@reg.provides(pycroft_model.Room)
+def translate_locations(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
+    objs = []
+    accesses: List[abe_model.Access] = (
+        ctx.query(abe_model.Access).filter(abe_model.Access.building != None).all()
+    )
+
+    for access in accesses:
+        try:
+            pycroft_building = data.buildings[access.building.short_name]
+        except KeyError:
+            ctx.logger.error("Could not find building data for shortname %s",
+                             access.building.short_name)
+            raise
+
+        # consolidate nomecnlature
+        level = access.floor
+        room_number = f"{access.flat}{access.room}"
+        address = pycroft_model.Address(
+            street=access.building.street,
+            number=access.building.number,
+            zip_code=access.building.zip_code,
+            addition=f"{level}-{room_number}"
+        )
+        objs.append(address)
+        room = pycroft_model.Room(
+            building=pycroft_building,
+            inhabitable=True,
+            level=level,
+            number=room_number,
+            address=address
+        )
+        objs.append(room)
+        data.access_rooms[access.id] = room
+
+    return objs
