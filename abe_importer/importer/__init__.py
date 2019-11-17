@@ -8,7 +8,7 @@ from pycroft.model import _all as pycroft_model
 
 from abe_importer.model import Base
 from .tools import TranslationRegistry
-from . import model as abe_model
+from .. import model as abe_model
 
 
 def do_import(abe_session: Session, logger: Logger):
@@ -84,3 +84,15 @@ def translate_building(ctx: Context, data: IntermediateData) -> List[pycroft_mod
     return objs
 
 
+#@reg.provides(pycroft_model.Address)
+def translate_addresses(ctx: Context, data: IntermediateData) -> List[Base]:
+    accesses = ctx.abe_session.query(abe_model.Access)
+
+    for access in accesses:
+        # new address
+        # pycroft_model.Address(street)
+        #data.access_rooms
+        pass
+
+    # TODO addresses for other people
+    return []
