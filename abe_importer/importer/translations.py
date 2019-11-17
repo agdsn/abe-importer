@@ -34,6 +34,8 @@ def translate_building(ctx: Context, data: IntermediateData) -> List[PycroftBase
     return objs
 
 
+# We don't need to translate the external addresses, because the referenced accounts
+# already have a mapping to a pycroft user
 @reg.provides(pycroft_model.Address)
 @reg.provides(pycroft_model.Room)
 def translate_locations(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
