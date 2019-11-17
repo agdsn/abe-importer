@@ -13,11 +13,14 @@ def add_sites(_, data: IntermediateData):
     return [site]
 
 
+PycroftBase = pycroft_model.ModelBase
+
+
 @reg.provides(pycroft_model.Building)
-def translate_building(ctx: Context, data: IntermediateData) -> List[pycroft_model.ModelBase]:
+def translate_building(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
     objs = []
 
-    buildings: List[abe_model.Building] = ctx.abe_session.query(abe_model.Building).all()
+    buildings: List[abe_model.Building] = ctx.query(abe_model.Building).all()
     for b in buildings:
         ctx.logger.debug(f"got building {b.short_name!r}")
         new_building = pycroft_model.Building(

@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
 from logging import Logger
-from typing import Dict, Callable, List
+from typing import Dict, Callable, List, Any
 
 from pycroft.model import _all as pycroft_model
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query
 
 from .tools import TranslationRegistry
 
@@ -12,6 +12,9 @@ from .tools import TranslationRegistry
 class Context:
     abe_session: Session
     logger: Logger
+
+    def query(self, *entities: Any, **kwargs: Any) -> Query:
+        return self.abe_session.query(*entities, **kwargs)
 
 
 def dict_field():
