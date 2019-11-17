@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String as sqlaString, Boolean, ForeignKe
 from sqlalchemy.dialects import postgresql as pgtype
 from sqlalchemy.ext.declarative import as_declarative, DeclarativeMeta
 from sqlalchemy.types import Date, DateTime, TypeDecorator, Numeric
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship, backref, foreign, remote
 
 
 @as_declarative(metaclass=DeclarativeMeta)
@@ -31,24 +31,30 @@ def id_pkey():
    return Column(Integer, primary_key=True)
 
 
+class Building(Base):
+    __tablename__ = 'imp_buildings'
+    short_name = Column(String, primary_key=True)
+    street = Column(String)
+    number = Column(String)
+    zip_code = Column(String)
+
+
 class Access(Base):
-    __tablename__ = 'access'
+    __tablename__ = 'imp_access'
     id = id_pkey()
     description = Column(String)
-    building = Column(String)
+    building_shortname = Column('building', String)
+    building: Building = relationship(
+        Building,
+        primaryjoin=foreign(building_shortname) == remote(Building.short_name),
+        uselist=False
+    )
     floor = Column(String)
     flat = Column(String)
     room = Column(String)
     switch = Column(String)
     port = Column(String)
     account = relationship('Account', primaryjoin='Account.access_id == Access.id')
-
-
-class Building(Base):
-    __tablename__ = 'imp_buildings'
-    short_name = Column(String, primary_key=True)
-    street = Column(String)
-    number = Column(String)
 
 
 class Account(Base):
