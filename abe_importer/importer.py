@@ -66,9 +66,9 @@ def add_sites(_, data: IntermediateData):
 def translate_building(ctx: Context, data: IntermediateData) -> List[Base]:
     objs = []
 
-    shortnames = ctx.abe_session.query(abe_model.Access.building).distinct()
-    for s in shortnames:
-        ctx.logger.debug(f"got shortname {s!r}")
+    buildings = ctx.abe_session.query(abe_model.Building)
+    for b in buildings:
+        ctx.logger.debug(f"got building {b!r}")
 
     return objs
 

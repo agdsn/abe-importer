@@ -44,6 +44,13 @@ class Access(Base):
     account = relationship('Account', primaryjoin='Account.access_id == Access.id')
 
 
+class Building(Base):
+    __tablename__ = 'imp_buildings'
+    short_name = Column(String, primary_key=True)
+    street = Column(String)
+    number = Column(String)
+
+
 class Account(Base):
     __tablename__ = 'imp_account'
     account = Column(String, primary_key=True)
