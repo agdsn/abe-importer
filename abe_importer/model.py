@@ -48,6 +48,7 @@ class Account(Base):
     __tablename__ = 'imp_account'
     account = Column(String, primary_key=True)
     system_account = Column(Boolean)
+    pycroft_login = Column(String)  # Provided by `imp_pycroft_account` mapping
     name = Column(String)
     # TODO etry_date etc.
     access_id = Column('access', Integer, ForeignKey(Access.id))
