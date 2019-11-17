@@ -22,7 +22,7 @@ VERSION = 'UNSET'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    'click', 'sqlalchemy',
+    'click', 'colorama', 'sqlalchemy',
 ]
 
 # What packages are optional?

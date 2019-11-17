@@ -1,8 +1,8 @@
-import logging
-
 import click
+import colorama
 
 from abe_importer.importer import do_import
+from abe_importer.logging import setup_logger
 from abe_importer.session import create_session
 
 
@@ -11,11 +11,12 @@ from abe_importer.session import create_session
 @click.option('-v', '--verbose', is_flag=True,
               help="Will raise the loglevel to DEBUG.")
 def main(abe_uri_file: str, verbose: True):
+    colorama.init()
     abe_session = create_session(read_uri(uri_file=abe_uri_file))
-    logger = logging.getLogger('abe-importer')
-    log_format = "[%(levelname).4s] %(name)s:%(funcName)s:%(message)s"
-    logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO,
-                        format=log_format)
+
+    logger_name = 'abe-importer'
+    logger = setup_logger(logger_name, verbose)
+
     do_import(abe_session, logger)
 
 
