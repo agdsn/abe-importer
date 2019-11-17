@@ -2,6 +2,7 @@ import click
 import colorama
 
 from abe_importer.importer import do_import
+from abe_importer.importer.translations import ImportException
 from abe_importer.logging import setup_logger
 from abe_importer.session import create_session
 
@@ -17,7 +18,10 @@ def main(abe_uri_file: str, verbose: True):
     logger_name = 'abe-importer'
     logger = setup_logger(logger_name, verbose)
 
-    do_import(abe_session, logger)
+    try:
+        do_import(abe_session, logger)
+    except ImportException:
+        exit(1)
 
 
 def read_uri(uri_file: str) -> str:

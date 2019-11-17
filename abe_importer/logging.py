@@ -9,7 +9,7 @@ class ColoredFormatter(logging.Formatter):
         # breakpoint()
         style = ""
         msg = super().format(record)
-        if record.levelno == logging.ERROR:
+        if record.levelno >= logging.ERROR:
             style = colorama.Style.BRIGHT + colorama.Fore.RED
         if record.levelno == logging.WARNING:
             style = colorama.Style.BRIGHT + colorama.Fore.YELLOW
