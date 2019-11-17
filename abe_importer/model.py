@@ -119,7 +119,7 @@ account_fee_relation = Table(
 class AccountProperty(Base):
     __tablename__ = 'account_property'
     account_name = account_fkey(primary_key=True)
-    account = relationship(Account, backref=backref("properties"))
+    account = relationship(Account, backref=backref("property", uselist=False))
     active = Column(Boolean)
     fee_free = Column(Boolean)
     port_config = Column(String)
