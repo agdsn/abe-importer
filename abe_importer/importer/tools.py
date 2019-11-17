@@ -49,14 +49,14 @@ class TranslationRegistry(Generic[FuncType, MetaType]):
     _satisfies: Dict[FuncType, set] = collections.defaultdict(lambda: set())
     _requires: Dict[FuncType, set] = collections.defaultdict(lambda: set())
 
-    def requires_function(self, *other_funcs):
+    def requires_function(self, *other_funcs) -> Callable[[FuncType], FuncType]:
         """Explicit dependence other functions"""
         def decorator(func):
             self._requires[func] = set(other_funcs)
             return func
         return decorator
 
-    def provides(self, *metas, **kwargs):
+    def provides(self, *metas, **kwargs) -> Callable[[FuncType], FuncType]:
         """Register a translation function to create given ModelMetas
 
         Register that the decorated function provides the `metas` and
