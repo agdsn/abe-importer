@@ -3,6 +3,8 @@
 # This file is part of the Pycroft project and licensed under the terms of
 # the Apache License, Version 2.0. See the LICENSE file for details.
 import logging as std_logging
+from typing import TypeVar, Generic, Dict, Callable, Iterable
+
 log = std_logging.getLogger('import')
 import collections
 import time
@@ -37,11 +39,15 @@ class DependencyError(Exception):
     pass
 
 
-class TranslationRegistry(object):
+FuncType = TypeVar('FuncType', bound=Callable)
+MetaType = TypeVar('MetaType')
+
+
+class TranslationRegistry(Generic[FuncType, MetaType]):
     # TODO sort by resource dependencies instead of pycroft model?
-    _provides = {}
-    _satisfies = collections.defaultdict(lambda: set())
-    _requires = collections.defaultdict(lambda: set())
+    _provides: Dict[MetaType, FuncType] = {}
+    _satisfies: Dict[FuncType, set] = collections.defaultdict(lambda: set())
+    _requires: Dict[FuncType, set] = collections.defaultdict(lambda: set())
 
     def requires_function(self, *other_funcs):
         """Explicit dependence other functions"""
@@ -117,7 +123,7 @@ class TranslationRegistry(object):
         return {func: self._required_translations(func)
                 for func in set(self._provides.values())}
 
-    def sorted_functions(self):
+    def sorted_functions(self) -> Iterable[FuncType]:
         func_dep_map = self.requirement_graph()
         sorted_funcs = []
 

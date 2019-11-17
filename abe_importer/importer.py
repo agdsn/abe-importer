@@ -1,7 +1,7 @@
 from collections import Counter
 from dataclasses import dataclass, field
 from logging import Logger
-from typing import Dict, List
+from typing import Dict, List, Callable
 
 from sqlalchemy.orm import Session
 from pycroft.model import _all as pycroft_model
@@ -52,7 +52,11 @@ class IntermediateData:
     account_external_address: Dict[str, pycroft_model.Address] = dict_field()
 
 
-reg = TranslationRegistry()
+reg: TranslationRegistry[
+    Callable[[Context, IntermediateData], List[pycroft_model.ModelBase]],
+    pycroft_model.ModelBase
+] \
+    = TranslationRegistry()
 
 
 @reg.provides(pycroft_model.Site)
