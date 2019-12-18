@@ -1,3 +1,4 @@
+import re
 from logging import Logger
 from typing import List
 
@@ -81,6 +82,24 @@ def translate_locations(ctx: Context, data: IntermediateData) -> List[PycroftBas
     return objs
 
 
+def sanitize_username(username: str):
+    u = username.lower()
+
+    if '.' in u:
+        u = u.replace('.', '-')
+
+    if '_' in u:
+        u = u.replace('_', '-')
+
+    if re.match(r"^\d", u):
+        u = f"hss-user-{u}"
+
+    if u.endswith('-'):
+        u.rstrip('-')
+
+    return u
+
+
 @reg.provides(pycroft_model.User)
 @reg.provides(pycroft_model.Account)
 @reg.provides(pycroft_model.UnixAccount)
@@ -107,10 +126,9 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
             continue
 
         props: abe_model.AccountProperty = acc.property
-        chosen_login: str = acc.account
-        if '_' in chosen_login:
-            chosen_login = chosen_login.replace('_', '-')
-            ctx.logger.warning("Renaming '%s' to '%s'", acc.account, chosen_login)
+        chosen_login = sanitize_username(acc.account)
+        if chosen_login != acc.account:
+            ctx.logger.warning("Renaming '%s' → '%s'", acc.account, chosen_login)
 
         # TODO find out whether this user already exists in pycroft
 
