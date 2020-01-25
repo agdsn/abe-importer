@@ -11,7 +11,7 @@ from abe_importer.session import create_session
 @click.option('--abe-uri-file', default=".abe_uri")
 @click.option('-v', '--verbose', is_flag=True,
               help="Will raise the loglevel to DEBUG.")
-def main(abe_uri_file: str, verbose: True):
+def main(abe_uri_file: str, verbose: bool):
     colorama.init()
     abe_session = create_session(read_uri(uri_file=abe_uri_file))
 
