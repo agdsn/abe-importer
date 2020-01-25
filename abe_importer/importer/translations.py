@@ -134,7 +134,7 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
                 room=room,
                 address=room.address,
                 # birthdate=acc.birth_date,  # TODO add birth date to model
-                email=props.mail,
+                email=maybe_fix_mail(props.mail, ctx.logger),
             )
         except pycroft_model.IllegalLoginError as e:
             ctx.logger.error("Account '%s' has invalid login!",
@@ -163,6 +163,15 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
     # TODO warn on people with neither access nor pycroft mapping
     _maybe_abort(num_errors, ctx.logger)
     return objs
+
+
+def maybe_fix_mail(mail: str, logger: Logger) -> str:
+    if ".@" not in mail:
+        return mail
+
+    new_mail = mail.replace(".@", "_@")
+    logger.warning("Changing mail %s → %s", mail, new_mail)
+    return new_mail
 
 
 def _maybe_abort(num_errors: int, logger: Logger):
