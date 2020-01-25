@@ -32,6 +32,9 @@ class IntermediateData:
     access_rooms: Dict[int, pycroft_model.Room] = dict_field()
     account_external_address: Dict[str, pycroft_model.Address] = dict_field()
 
+    # switch_name → Switch
+    switches: Dict[str, pycroft_model.Switch] = dict_field()
+
 
 reg: TranslationRegistry[
     Callable[[Context, IntermediateData], List[pycroft_model.ModelBase]],

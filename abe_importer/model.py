@@ -1,3 +1,4 @@
+import ipaddr
 from sqlalchemy import Column, Integer, String as sqlaString, Boolean, ForeignKey, Table
 from sqlalchemy.dialects import postgresql as pgtype
 from sqlalchemy.ext.declarative import as_declarative, DeclarativeMeta
@@ -71,6 +72,19 @@ class Account(Base):
     
 def account_fkey(**kw):
     return Column('account', String, ForeignKey(Account.account), **kw)
+
+
+class Switch(Base):
+    __tablename__ = 'imp_switch'
+    name = Column(String, primary_key=True)
+    building = Column(String)
+    level = Column(Integer)
+    room_number = Column(String)
+    mgmt_ip_str = Column('mgmt_ip', String)
+
+    @property
+    def mgmt_ip(self):
+        return ipaddr.IPAddress(self.mgmt_ip_str)
 
 
 class Ip(Base):

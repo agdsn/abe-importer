@@ -41,6 +41,46 @@ def translate_building(ctx: Context, data: IntermediateData) -> List[PycroftBase
     return objs
 
 
+@reg.provides(pycroft_model.Switch, pycroft_model.Host,
+              satisfies=(pycroft_model.Switch.host,))
+def translate_switch(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
+    objs = []
+
+    switches: List[abe_model.Switch] = ctx.query(abe_model.Switch).all()
+
+    for s in switches:
+        ctx.logger.debug(f"got switch {s.name!r}")
+
+        try:
+            building = data.buildings[s.building]
+        except KeyError:
+            ctx.logger.error(f"switch {s.name!r} references nonextistent building {s.building!r}")
+            continue
+        room = pycroft_model.Room(
+            building=building,
+            level=s.level,
+            number=s.room_number,
+            inhabitable=False,
+        )
+        objs.append(room)
+
+        host = pycroft_model.Host(
+            name=s.name,
+            room=room,
+            owner_id=0,
+        )
+        objs.append(host)
+
+        switch = pycroft_model.Switch(
+            host=host,
+            management_ip=s.mgmt_ip,
+        )
+        objs.append(switch)
+        data.switches[s.name] = switch  # necessary for ref in `SwitchPort`s
+
+    return objs
+
+
 # We don't need to translate the external addresses, because the referenced accounts
 # already have a mapping to a pycroft user
 @reg.provides(pycroft_model.Address)
