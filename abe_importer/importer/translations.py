@@ -85,17 +85,13 @@ def translate_locations(ctx: Context, data: IntermediateData) -> List[PycroftBas
 def sanitize_username(username: str):
     u = username.lower()
 
-    if '.' in u:
-        u = u.replace('.', '-')
-
     if '_' in u:
         u = u.replace('_', '-')
 
     if re.match(r"^\d", u):
         u = f"hss-user-{u}"
 
-    if u.endswith('-'):
-        u.rstrip('-')
+    u = re.sub(r"([.-])*$", "", u)
 
     return u
 
