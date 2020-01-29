@@ -3,7 +3,7 @@
 # This file is part of the Pycroft project and licensed under the terms of
 # the Apache License, Version 2.0. See the LICENSE file for details.
 import logging as std_logging
-from typing import TypeVar, Generic, Dict, Callable, Iterable
+from typing import TypeVar, Generic, Dict, Callable, Iterable, Set
 
 log = std_logging.getLogger('import')
 import collections
@@ -51,7 +51,7 @@ class TranslationRegistry(Generic[FuncType, MetaType]):
 
     def requires_function(self, *other_funcs) -> Callable[[FuncType], FuncType]:
         """Explicit dependence other functions"""
-        def decorator(func):
+        def decorator(func: FuncType):
             self._requires[func] = set(other_funcs)
             return func
         return decorator
@@ -97,7 +97,7 @@ class TranslationRegistry(Generic[FuncType, MetaType]):
             return func
         return decorator
 
-    def _required_translations(self, func):
+    def _required_translations(self, func: FuncType) -> Set[FuncType]:
         translates = invert_dict(self._provides)[func]
         required = set()
         for table in translates:
@@ -119,7 +119,7 @@ class TranslationRegistry(Generic[FuncType, MetaType]):
         required.update(self._requires[func])
         return required
 
-    def requirement_graph(self):
+    def requirement_graph(self) -> Dict[FuncType, Set[FuncType]]:
         return {func: self._required_translations(func)
                 for func in set(self._provides.values())}
 
