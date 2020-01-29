@@ -23,6 +23,9 @@ class ImportException(RuntimeError):
 PycroftBase = pycroft_model.ModelBase
 
 
+ROOT_ID = 0
+
+
 @reg.provides(pycroft_model.Building)
 def translate_building(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
     objs = []
@@ -67,7 +70,7 @@ def translate_switch(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
         host = pycroft_model.Host(
             name=s.name,
             room=room,
-            owner_id=0,
+            owner_id=ROOT_ID,
         )
         objs.append(host)
 
@@ -193,7 +196,7 @@ def translate_locations(ctx: Context, data: IntermediateData) -> List[PycroftBas
         objs.append(pycroft_model.RoomLogEntry(
             message=deferred_gettext("User imported from legacy database abe.").to_json(),
             room=room,
-            author_id=0,
+            author_id=ROOT_ID,
         ))
 
     ctx.logger.info(f"Got {unpatched_ports} unpatched ports"
