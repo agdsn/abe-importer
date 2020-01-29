@@ -190,6 +190,12 @@ def translate_locations(ctx: Context, data: IntermediateData) -> List[PycroftBas
         patch_port.switch_port = switch_port
         objs.append(patch_port)
 
+        objs.append(pycroft_model.RoomLogEntry(
+            message=deferred_gettext("User imported from legacy database abe.").to_json(),
+            room=room,
+            author_id=0,
+        ))
+
     ctx.logger.info(f"Got {unpatched_ports} unpatched ports"
                     if unpatched_ports else "Kudos, all ports are patched!")
     ctx.logger.info(f"Got {unpatched_rooms} unpatched rooms"
