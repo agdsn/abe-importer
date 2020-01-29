@@ -1,6 +1,6 @@
 import re
 from logging import Logger
-from typing import List
+from typing import List, Optional
 
 from pycroft.helpers.i18n import deferred_gettext
 from pycroft.model import _all as pycroft_model
@@ -41,8 +41,8 @@ def translate_building(ctx: Context, data: IntermediateData) -> List[PycroftBase
     return objs
 
 
-@reg.provides(pycroft_model.Switch, pycroft_model.Host,
-              satisfies=(pycroft_model.Switch.host,))
+# @reg.provides(pycroft_model.Switch, pycroft_model.Host,
+#              satisfies=(pycroft_model.Switch.host,))
 def translate_switch(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
     objs = []
 
@@ -81,44 +81,121 @@ def translate_switch(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
     return objs
 
 
+def try_create_switch_port(access: abe_model.Access, data, logger: Logger) \
+        -> Optional[pycroft_model.SwitchPort]:
+    if not access.port:
+        return None
+
+    try:
+        switch = data.switches[access.switch]
+    except KeyError:
+        logger.critical("Could not find switch %r in intermediate data", access.switch)
+        raise
+        # TODO add an `ImporterError` (here: `InconsistencyError`) for nicer reporting
+
+    return pycroft_model.SwitchPort(
+        switch=switch,
+        name=access.port,
+        # TODO add default_vlans
+    )
+
+
+def try_create_room(access: abe_model.Access, data, logger: Logger) \
+        -> Optional[pycroft_model.Room]:
+    if not access.building:
+        return None
+
+    try:
+        pycroft_building = data.buildings[access.building.short_name]
+    except KeyError:
+        logger.error("Could not find building data for shortname %s",
+                     access.building.short_name)
+        raise
+
+    # consolidate nomecnlature
+    level = access.floor
+    room_number = f"{access.flat}{access.room}"
+    address = pycroft_model.Address(
+        street=access.building.street,
+        number=access.building.number,
+        zip_code=access.building.zip_code,
+        addition=f"{level}-{room_number}"
+    )
+    room = pycroft_model.Room(
+        building=pycroft_building,
+        inhabitable=True,
+        level=level,
+        number=room_number,
+        address=address
+    )
+    return room  # address will be committed as well
+
+
+def try_create_patch_port(room: pycroft_model.Room, access: abe_model.Access,
+                          data: IntermediateData,
+                          logger: Logger) -> Optional[pycroft_model.PatchPort]:
+    if not access.switch:
+        logger.warning(f"Access {access.id} ({room.short_name}) has no switch! "
+                       f"You may need to create the PatchPort manually.")
+        return None
+    return pycroft_model.PatchPort(
+        room=room,
+        switch_room=data.switches[access.switch].host.room,
+        name=f"?? ({room.short_name})"
+    )
+
+
 # We don't need to translate the external addresses, because the referenced accounts
 # already have a mapping to a pycroft user
 @reg.provides(pycroft_model.Address)
 @reg.provides(pycroft_model.Room)
 def translate_locations(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
-    objs = []
-    accesses: List[abe_model.Access] = (
-        ctx.query(abe_model.Access).filter(abe_model.Access.building != None).all()
-    )
+    objs = translate_switch(ctx, data)
+    accesses: List[abe_model.Access] = ctx.query(abe_model.Access).all()
+
+    errors = 0
+    unpatched_ports = 0
+    unpatched_rooms = 0
 
     for access in accesses:
-        try:
-            pycroft_building = data.buildings[access.building.short_name]
-        except KeyError:
-            ctx.logger.error("Could not find building data for shortname %s",
-                             access.building.short_name)
-            raise
+        # null if access.switch_port is null -> it MAY be that we have a `switch`!
+        switch_port = try_create_switch_port(access, data, ctx.logger)
+        room = try_create_room(access, data, ctx.logger)
+        objs.extend(x for x in [switch_port, room] if x)
 
-        # consolidate nomecnlature
-        level = access.floor
-        room_number = f"{access.flat}{access.room}"
-        address = pycroft_model.Address(
-            street=access.building.street,
-            number=access.building.number,
-            zip_code=access.building.zip_code,
-            addition=f"{level}-{room_number}"
-        )
-        objs.append(address)
-        room = pycroft_model.Room(
-            building=pycroft_building,
-            inhabitable=True,
-            level=level,
-            number=room_number,
-            address=address
-        )
-        objs.append(room)
-        data.access_rooms[access.id] = room
+        if room and not switch_port:
+            if not access.switch:
+                ctx.logger.warning(f"Access {access.id} has on switch!")
+            ctx.logger.debug(f"Unpatched room {room.short_name}")
+            unpatched_rooms += 1
+            continue
+        if not room and switch_port:
+            ctx.logger.debug(f"Unpatched port {switch_port.switch.host.name}/{access.port}")
+            unpatched_ports += 1
+            continue
+        if not room and not switch_port:
+            ctx.logger.critical(f"Access {access.id} references neither room nor switch!")
+            errors += 1
+            continue
 
+        assert access.switch and access.building
+        objs.extend([room, switch_port, room.address])
+        data.access_rooms[access.id] = room  # necessary for adding the account
+
+        patch_port = try_create_patch_port(room, access, data, ctx.logger)
+        if not access.switch:
+            ctx.logger.warning(f"Access {access.id} has no switch!")
+            continue
+
+        patch_port.switch_port = switch_port
+        objs.append(patch_port)
+
+    ctx.logger.info(f"Got {unpatched_ports} unpatched ports"
+                    if unpatched_ports else "Kudos, all ports are patched!")
+    ctx.logger.info(f"Got {unpatched_rooms} unpatched rooms"
+                    if unpatched_rooms else "Kudos, all rooms are patched!")
+
+    _maybe_abort(errors, ctx.logger)
     return objs
 
 
