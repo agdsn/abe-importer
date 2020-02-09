@@ -16,4 +16,4 @@ pycroft = {editable = true,git = "git://github.com/agdsn/pycroft.git",ref = "dev
 colorama = "*"
 
 [requires]
-python_version="3.7"
+python_version="3.8"
