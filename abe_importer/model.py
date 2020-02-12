@@ -96,7 +96,8 @@ def account_fkey(**kw):
 class Switch(Base):
     __tablename__ = 'imp_switch'
     name = Column(String, primary_key=True)
-    building = Column(String)
+    building = Column(String, ForeignKey(Building.short_name))
+    building_rel = relationship(Building, uselist=False)
     level = Column(Integer)
     room_number = Column(String)
     mgmt_ip_str = Column('mgmt_ip', String)

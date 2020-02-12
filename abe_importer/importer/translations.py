@@ -30,6 +30,9 @@ ROOT_ID = 0
 def translate_building(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
     objs = []
 
+    hss = pycroft_model.Site(name="Hochschulstraße")
+    objs.append(hss)
+
     buildings: List[abe_model.Building] = ctx.query(abe_model.Building).all()
     for b in buildings:
         ctx.logger.debug(f"got building {b.short_name!r}")
@@ -37,6 +40,7 @@ def translate_building(ctx: Context, data: IntermediateData) -> List[PycroftBase
             short_name=b.short_name,
             street=b.street,
             number=b.number,
+            site=hss,
         )
         data.buildings[b.short_name] = new_building
         objs.append(new_building)
@@ -64,6 +68,7 @@ def translate_switch(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
             level=s.level,
             number=s.room_number,
             inhabitable=False,
+            address=address_from_building(s.building_rel, s.level, s.room_number)
         )
         objs.append(room)
 
@@ -103,6 +108,17 @@ def try_create_switch_port(access: abe_model.Access, data, logger: Logger) \
     )
 
 
+def address_from_building(building: abe_model.Building,
+                          level: int,
+                          room_number: str) -> pycroft_model.Address:
+    return pycroft_model.Address(
+        street=building.street,
+        number=building.number,
+        zip_code=building.zip_code,
+        addition=f"{level}-{room_number}"
+    )
+
+
 def try_create_room(access: abe_model.Access, data, logger: Logger) \
         -> Optional[pycroft_model.Room]:
     if not access.building:
@@ -118,12 +134,7 @@ def try_create_room(access: abe_model.Access, data, logger: Logger) \
     # consolidate nomecnlature
     level = access.floor
     room_number = f"{access.flat}{access.room}"
-    address = pycroft_model.Address(
-        street=access.building.street,
-        number=access.building.number,
-        zip_code=access.building.zip_code,
-        addition=f"{level}-{room_number}"
-    )
+    address = address_from_building(access.building, level, room_number)
     room = pycroft_model.Room(
         building=pycroft_building,
         inhabitable=True,
