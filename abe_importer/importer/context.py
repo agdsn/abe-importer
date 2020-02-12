@@ -35,6 +35,9 @@ class IntermediateData:
     # switch_name → Switch
     switches: Dict[str, pycroft_model.Switch] = dict_field()
 
+    # account-name → User
+    users: Dict[str, pycroft_model.User] = dict_field()
+
 
 reg: TranslationRegistry[
     Callable[[Context, IntermediateData], List[pycroft_model.ModelBase]],

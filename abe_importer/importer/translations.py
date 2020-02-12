@@ -291,7 +291,7 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
         user.account = finance_account
         user.unix_account = unix_acc
 
-        # TODO add user to data
+        data.users[acc.account] = user
 
         objs.extend([user, finance_account, unix_acc])
 
