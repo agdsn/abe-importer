@@ -285,7 +285,7 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
             continue
 
         finance_account = pycroft_model.Account(
-            name=deferred_gettext(u"HSS:User {login}").format(id=chosen_login).to_json(),
+            name=deferred_gettext(u"HSS:User {login}").format(login=chosen_login).to_json(),
             type='USER_ASSET',
         )
         user.account = finance_account
