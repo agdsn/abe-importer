@@ -68,6 +68,25 @@ class Account(Base):
     access_id = Column('access', Integer, ForeignKey(Access.id))
     access = relationship(Access, primaryjoin=access_id == Access.id)
     use_cache = Column(Boolean, default=False)
+    ldap_entry = relationship('LdapEntry', back_populates='account', uselist=False)
+
+
+def map_uid(uid: int):
+    return uid
+
+
+class LdapEntry(Base):
+    __tablename__ = 'imp_ldap_entry'
+    uid = Column(String, ForeignKey(Account.account), primary_key=True)
+    account = relationship(Account, back_populates='ldap_entry', uselist=False)
+    _uidnumber = Column('uidnumber', Integer)
+    gidnumber = Column(Integer)
+    userpassword = Column(String)
+    homedirectory = Column(String)
+
+    @property
+    def uidnumber(self):
+        return map_uid(self._uidnumber)
 
     
 def account_fkey(**kw):

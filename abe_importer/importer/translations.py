@@ -254,6 +254,20 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
 
         # TODO find out whether this user already exists in pycroft
 
+        maybe_passwd_arg = {}
+        unix_acc = None
+        if acc.ldap_entry:
+            maybe_passwd_arg = {'passwd_hash': acc.ldap_entry.userpassword}
+            unix_acc = pycroft_model.UnixAccount(
+                home_directory=acc.ldap_entry.homedirectory,
+                uid=acc.ldap_entry.uidnumber,
+                gid=acc.ldap_entry.gidnumber,
+            )
+        else:
+            ctx.logger.warning("User %s does not have an ldap_entry."
+                               " Password and unix_account won't be set.",
+                               acc.account)
+
         try:
             user = pycroft_model.User(
                 login=chosen_login,
@@ -261,6 +275,7 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
                 address=room.address,
                 # birthdate=acc.birth_date,  # TODO add birth date to model
                 email=maybe_fix_mail(props.mail, ctx.logger),
+                **maybe_passwd_arg,
             )
         except pycroft_model.IllegalLoginError as e:
             ctx.logger.error("Account '%s' has invalid login!",
@@ -269,14 +284,11 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
             num_errors += 1
             continue
 
-        # TODO find password from ldap (or import that later)
-
         finance_account = pycroft_model.Account(
             name=deferred_gettext(u"HSS:User {login}").format(id=chosen_login).to_json(),
             type='USER_ASSET',
         )
         user.account = finance_account
-        unix_acc = pycroft_model.UnixAccount(home_directory=f"/home/{chosen_login}")
         user.unix_account = unix_acc
 
         # TODO add user to data
