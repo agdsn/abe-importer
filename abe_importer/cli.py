@@ -10,11 +10,14 @@ from abe_importer.session import create_session
 
 @click.command()
 @click.option('--abe-uri-file', default=".abe_uri")
+@click.option('--pycroft-uri-file', default=".pycroft_uri")
 @click.option('--refresh/--no-refresh', default=True,
               help="Don't force a refresh of the LDAP view")
+@click.option('-n', '--dry-run',
+              help="Don't write to the pycroft database")
 @click.option('-v', '--verbose', is_flag=True,
               help="Will raise the loglevel to DEBUG.")
-def main(abe_uri_file: str, refresh: bool, verbose: bool):
+def main(abe_uri_file: str, pycroft_uri_file: str, dry_run: bool, refresh: bool, verbose: bool):
     colorama.init()
     abe_session = create_session(read_uri(uri_file=abe_uri_file))
 
@@ -30,9 +33,18 @@ def main(abe_uri_file: str, refresh: bool, verbose: bool):
         logger.info("Skipping LDAP refresh.  Use --refresh to force it.")
 
     try:
-        do_import(abe_session, logger)
+        objs = do_import(abe_session, logger)
     except ImportException:
         exit(1)
+        return  # Don't judge me, this keeps pycharm silent
+
+    if dry_run:
+        exit(0)
+        return
+
+    pycroft_session = create_session(read_uri(pycroft_uri_file))
+    pycroft_session.add_all(objs)
+    pycroft_session.commit()
 
 
 def read_uri(uri_file: str) -> str:
