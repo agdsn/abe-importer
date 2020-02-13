@@ -255,6 +255,10 @@ def sanitize_username(username: str):
     return u
 
 
+def uid_mapping(abe_uid: int) -> int:
+    return abe_uid + 20000
+
+
 @reg.provides(pycroft_model.User)
 @reg.provides(pycroft_model.Account)
 @reg.provides(pycroft_model.UnixAccount)
@@ -286,14 +290,13 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
             ctx.logger.warning("Renaming '%s' → '%s'", acc.account, chosen_login)
 
         # TODO find out whether this user already exists in pycroft
-
         maybe_passwd_arg = {}
         unix_acc = None
         if acc.ldap_entry:
             maybe_passwd_arg = {'passwd_hash': acc.ldap_entry.userpassword}
             unix_acc = pycroft_model.UnixAccount(
                 home_directory=acc.ldap_entry.homedirectory,
-                uid=acc.ldap_entry.uidnumber,
+                uid=uid_mapping(acc.ldap_entry.uidnumber),
                 gid=acc.ldap_entry.gidnumber,
             )
         else:
