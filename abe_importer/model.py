@@ -64,7 +64,8 @@ class Account(Base):
     system_account = Column(Boolean)
     pycroft_login = Column(String)  # Provided by `imp_pycroft_account` mapping
     name = Column(String)
-    # TODO etry_date etc.
+    entry_date = Column(Date)
+    date_of_birth = Column(Date)
     access_id = Column('access', Integer, ForeignKey(Access.id))
     access = relationship(Access, primaryjoin=access_id == Access.id)
     use_cache = Column(Boolean, default=False)

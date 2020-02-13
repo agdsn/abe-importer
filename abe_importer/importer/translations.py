@@ -311,8 +311,10 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
             user = pycroft_model.User(
                 login=chosen_login,
                 room=room,
+                name=acc.name,
                 address=room.address,
-                # birthdate=acc.birth_date,  # TODO add birth date to model
+                birthdate=acc.date_of_birth,  # TODO add birth date to model
+                registered_at=acc.entry_date,
                 email=maybe_fix_mail(props.mail, ctx.logger),
                 **maybe_passwd_arg,
             )
