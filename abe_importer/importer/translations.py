@@ -131,9 +131,20 @@ def try_create_room(access: abe_model.Access, data, logger: Logger) \
                      access.building.short_name)
         raise
 
+    str_level = access.floor
+    flat = access.flat
     # consolidate nomecnlature
-    level = access.floor
-    room_number = f"{access.flat}{access.room}"
+    if access.building_shortname == 'WUMS':
+        str_level = '1'
+        flat = '0'
+
+    try:
+        level = int(str_level)
+    except ValueError:
+        logger.warning("access with non-integer floor: %r", access)
+        return None
+
+    room_number = f"{flat}{access.room}"
     address = address_from_building(access.building, level, room_number)
     room = pycroft_model.Room(
         building=pycroft_building,
