@@ -183,7 +183,7 @@ def try_create_patch_port(room: pycroft_model.Room, access: abe_model.Access,
     return pycroft_model.PatchPort(
         room=room,
         switch_room=data.switches[access.switch].host.room,
-        name=f"?? ({room.short_name})"
+        name=f"??"  # ({room.short_name}) cannot be appended due to 8 char limit.
     )
 
 
