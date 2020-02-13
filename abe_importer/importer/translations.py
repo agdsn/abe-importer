@@ -48,8 +48,21 @@ def translate_building(ctx: Context, data: IntermediateData) -> List[PycroftBase
     return objs
 
 
+def addr_equal(a1: pycroft_model.Address, a2: pycroft_model.Address) -> bool:
+    keys = ['street', 'number', 'addition', 'zip_code', 'city', 'state', 'country']
+    return all(getattr(a1, k) == getattr(a2, k) for k in keys)
+
+
 # @reg.provides(pycroft_model.Switch, pycroft_model.Host,
 #              satisfies=(pycroft_model.Switch.host,))
+def maybe_existing_address(address: pycroft_model.Address, objs: List[pycroft_model.IntegerIdModel]) \
+        -> pycroft_model.Address:
+    # TODO check whether this is still needed
+    server_addrs = [a for a in objs if isinstance(a, pycroft_model.Address) and addr_equal(a, address)]
+    assert len(server_addrs) <= 2, f"there are more than two addresses like {address}"
+    return address if not server_addrs else server_addrs[0]
+
+
 def translate_switch(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
     objs = []
 
@@ -63,12 +76,16 @@ def translate_switch(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
         except KeyError:
             ctx.logger.error(f"switch {s.name!r} references nonextistent building {s.building!r}")
             continue
+        address = maybe_existing_address(
+            address_from_building(s.building_rel, s.level, s.room_number + "_datenraum"),
+            objs
+        )
         room = pycroft_model.Room(
             building=building,
             level=s.level,
             number=s.room_number,
             inhabitable=False,
-            address=address_from_building(s.building_rel, s.level, s.room_number)
+            address=address,
         )
         objs.append(room)
 
