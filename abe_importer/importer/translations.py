@@ -286,16 +286,26 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
 
         props: abe_model.AccountProperty = acc.property
         chosen_login = sanitize_username(acc.account)
+        login_has_been_sanitized = False
         if chosen_login != acc.account:
             ctx.logger.warning("Renaming '%s' → '%s'", acc.account, chosen_login)
+            login_has_been_sanitized = True
 
         # TODO find out whether this user already exists in pycroft
         maybe_passwd_arg = {}
         unix_acc = None
+        homedir_exists = False
         if acc.ldap_entry:
+            abe_homedir = acc.ldap_entry.homedirectory
+            homedir_exists = bool(ctx.pycroft_session.query(pycroft_model.UnixAccount)
+                                     .filter_by(home_directory=abe_homedir).one_or_none())
+            if homedir_exists:
+                ctx.logger.warning("Moving %(h)s to %(h)s-hss", {'h': abe_homedir})
+                abe_homedir = f"{abe_homedir}-hss"
+
             maybe_passwd_arg = {'passwd_hash': acc.ldap_entry.userpassword}
             unix_acc = pycroft_model.UnixAccount(
-                home_directory=acc.ldap_entry.homedirectory,
+                home_directory=abe_homedir,
                 uid=uid_mapping(acc.ldap_entry.uidnumber),
                 gid=acc.ldap_entry.gidnumber,
             )
@@ -303,6 +313,22 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
             ctx.logger.warning("User %s does not have an ldap_entry."
                                " Password and unix_account won't be set.",
                                acc.account)
+
+        user_exists = bool(ctx.pycroft_session
+                                    .query(pycroft_model.User)
+                                    .filter_by(login=chosen_login)
+                                    .one_or_none())
+        if user_exists:
+            ctx.logger.warning("Renaming %(acc)s → %(acc)s-hss", {'acc': chosen_login})
+            chosen_login = f"{chosen_login}-hss"
+
+        if unix_acc and user_exists and not homedir_exists:
+            ctx.logger.info("User %s kept original homedir %s!",
+                            chosen_login, unix_acc.home_directory)
+        elif not login_has_been_sanitized and unix_acc \
+                and unix_acc.home_directory != f"/home/{chosen_login}":
+            ctx.logger.info("User %s has unusualy homedir %s!",
+                            chosen_login, unix_acc.home_directory)
 
         try:
             user = pycroft_model.User(
