@@ -11,6 +11,7 @@ from .tools import TranslationRegistry
 @dataclass
 class Context:
     abe_session: Session
+    pycroft_session: Session
     logger: Logger
 
     def query(self, *entities: Any, **kwargs: Any) -> Query:

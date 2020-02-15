@@ -10,9 +10,9 @@ from .context import Context, IntermediateData, reg
 from .tools import TranslationRegistry
 
 
-def do_import(abe_session: Session, logger: Logger):
+def do_import(abe_session: Session, pycroft_session: Session, logger: Logger):
     logger.info("Starting (dummy) import")
-    ctx = Context(abe_session, logger)
+    ctx = Context(abe_session, pycroft_session, logger)
     data = IntermediateData()
     objs = ObjectRegistry(f"{logger.name}.object_reg")
     objs.add_filter(lambda o: isinstance(o, pycroft_model.Building) and o.number == '50')
