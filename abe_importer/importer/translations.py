@@ -227,7 +227,7 @@ def translate_locations(ctx: Context, data: IntermediateData) -> List[PycroftBas
         objs.append(patch_port)
 
         objs.append(pycroft_model.RoomLogEntry(
-            message=deferred_gettext("User imported from legacy database abe.").to_json(),
+            message=f"Room imported from legacy database abe. Access-ID: {access.id}",
             room=room,
             author_id=ROOT_ID,
         ))
@@ -358,6 +358,11 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
         data.users[acc.account] = user
 
         objs.extend([user, finance_account, unix_acc])
+        objs.append(pycroft_model.UserLogEntry(
+            message=f"Imported from legacy database abe. Account: {acc.account!r}",
+            user=user,
+            author_id=ROOT_ID,
+        ))
 
         # TODO (in a separate translation) add memberships -> What about (former) orgs?.
 
