@@ -211,4 +211,5 @@ dmypy.json
 .pyre/
 
 # End of https://www.gitignore.io/api/python,linux,jetbrains
-.abe_uri
+/.abe_uri
+/.pycroft_uri
