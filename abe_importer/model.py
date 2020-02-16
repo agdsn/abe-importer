@@ -198,7 +198,16 @@ class FeeInfo(Base):
     amount = Column(Numeric(2))
     description = Column(String)
     timestamp = Column(DateTime)
-    # TODO relationship to account via account_fee_relation 
+
+
+class AccountFeeRelation(Base):
+    __tablename__ = 'account_fee_relation'
+    fee_id = Column(Integer, ForeignKey(FeeInfo.id))
+    fee = relationship(FeeInfo)
+    account_name = Column('account', String, ForeignKey(Account.account))
+    account = relationship(Account)
+
+
 class IpLog(Base):
     __tablename__ = 'ip_log'
     id = id_pkey()
