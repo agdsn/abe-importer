@@ -509,10 +509,19 @@ def create_user_transaction(log, user_account, hss_account, activity):
 def translate_fees(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
     objs: List[pycroft_model.ModelBase] = []
 
-    # TODO add AccountFeeRelation to model
-    for fee_rel in []:
-        # TODO import membership fees
-        pass
+    for fee_rel in ctx.abe_session.query(abe_model.AccountFeeRelation).all():
+        assert isinstance(fee_rel, abe_model.AccountFeeRelation)
+        is_membership_fee = fee_rel.fee.description.startswith("Mitgliedsbeitrag")
+
+        if is_membership_fee:
+            # TODO import fee and add membership info to intermediate data
+            continue
+
+        is_allowance = fee_rel.fee.description.startswith("Aufwandsentsch")
+        if is_allowance:
+            # TODO create a transaction member account <-> allowances account
+            continue
+        # TODO just import as a compensation member account <-> membership account
 
     # TODO warn on balance mismatch (abe-proclaimed vs actual)
 
