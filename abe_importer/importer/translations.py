@@ -291,7 +291,6 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
             ctx.logger.warning("Renaming '%s' → '%s'", acc.account, chosen_login)
             login_has_been_sanitized = True
 
-        # TODO find out whether this user already exists in pycroft
         maybe_passwd_arg = {}
         unix_acc = None
         homedir_exists = False
@@ -366,7 +365,24 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
 
         # TODO (in a separate translation) add memberships -> What about (former) orgs?.
 
-    # TODO import people with pycroft mapping
+    # 2. People who _do_ have a pycroft mapping
+
+    for acc in ctx.abe_session.query(abe_model.Account)\
+            .filter(abe_model.Account.pycroft_login != None):
+        # TODO add to „manual intervention“ report
+        pycroft_user = ctx.pycroft_session.query(pycroft_model.User) \
+            .filter_by(login=acc.pycroft_login).one_or_none()
+        if not pycroft_user:
+            ctx.logger.error("Account %s is claimed to correspond to pycroft user %s,"
+                             " but the latter does not exist",
+                             acc.account, acc.pycroft_login)
+            num_errors += 1
+            continue
+        ctx.logger.debug("Associating pycroft user %s to account %s",
+                         acc.pycroft_login, acc.account)
+
+        data.users[acc.account] = pycroft_user
+
     # TODO warn on people with neither access nor pycroft mapping
     _maybe_abort(num_errors, ctx.logger)
     return objs
@@ -416,6 +432,7 @@ def translate_bank_statements(ctx: Context, data: IntermediateData) -> List[Pycr
         objs.append(activity)
         if log.account:
             user = data.users.get(log.account_name)
+            user_account = user.account
             if not user:
                 ctx.logger.error("We have a transaction (id %d) to non-imported account '%s'",
                                  log.id, log.account_name)
@@ -429,13 +446,18 @@ def translate_bank_statements(ctx: Context, data: IntermediateData) -> List[Pycr
                 valid_on=log.timestamp.date(),
             )
 
+            # implicitly added
+            # noinspection PyUnusedLocal
             user_split = pycroft_model.Split(transaction=transaction, amount=-log.amount,
-                                             account=user.account)
+                                             account=user_account)
+            # implicitly added
             bank_split = pycroft_model.Split(transaction=transaction, amount=log.amount,
                                              account=hss_account)
             activity.split = bank_split
+            assert len(transaction.splits) == 2
+            assert len({s.account for s in transaction.splits})
 
-            objs.extend([transaction, user_split, bank_split])
+            objs.append(transaction)
             continue
 
         # account not set
@@ -452,11 +474,16 @@ def translate_bank_statements(ctx: Context, data: IntermediateData) -> List[Pycr
                 author_id=ROOT_ID,
                 description=log.purpose,
             )
+            # implicitly added
+            # noinspection PyUnusedLocal
             former_user_split = pycroft_model.Split(transaction=transaction, amount=-log.amount,
-                                                    account=hss_account)
+                                                    account=account)
+            # implicitly added
+            # noinspection PyUnusedLocal
             bank_split = pycroft_model.Split(transaction=transaction, amount=log.amount,
                                              account=hss_account)
-            objs.extend([former_user_split, bank_split])
+            assert len(transaction.splits) == 2
+            objs.append(transaction)
             continue
 
         # neither account nor name set
