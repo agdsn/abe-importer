@@ -482,6 +482,7 @@ def translate_bank_statements(ctx: Context, data: IntermediateData) -> List[Pycr
             # noinspection PyUnusedLocal
             bank_split = pycroft_model.Split(transaction=transaction, amount=log.amount,
                                              account=hss_account)
+            activity.split = bank_split
             assert len(transaction.splits) == 2
             objs.append(transaction)
             continue
