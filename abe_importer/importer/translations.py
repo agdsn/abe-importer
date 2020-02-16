@@ -412,6 +412,12 @@ def translate_bank_statements(ctx: Context, data: IntermediateData) -> List[Pycr
     )
     objs.append(bank_account)
 
+    dead_memberships_account = pycroft_model.Account(
+        name="Mitgliedsbeiträge gelöschter Abe-Accounts",
+        type="REVENUE",
+    )
+    objs.append(dead_memberships_account)
+
     for log in ctx.abe_session.query(abe_model.AccountStatementLog).all():
         assert isinstance(log, abe_model.AccountStatementLog)
         activity = pycroft_model.BankAccountActivity(
@@ -487,6 +493,17 @@ def translate_bank_statements(ctx: Context, data: IntermediateData) -> List[Pycr
             activity.split = bank_split
             assert len(transaction.splits) == 2
             objs.append(transaction)
+
+            balancing_transaction = pycroft_model.Transaction(
+                author_id=ROOT_ID,
+                description=f"Reconstructed membership fee of {log.name}",
+                posted_at=log.timestamp,
+                valid_on=log.timestamp.date(),
+            )
+            balancing_transaction.splits = [
+                pycroft_model.Split(amount=log.amount, account=account),
+                pycroft_model.Split(amount=-log.amount, account=dead_memberships_account)
+            ]
             continue
 
         # neither account nor name set
