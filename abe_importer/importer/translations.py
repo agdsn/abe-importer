@@ -473,6 +473,8 @@ def translate_bank_statements(ctx: Context, data: IntermediateData) -> List[Pycr
             transaction = pycroft_model.Transaction(
                 author_id=ROOT_ID,
                 description=log.purpose,
+                posted_at=log.timestamp,
+                valid_on=log.timestamp.date(),
             )
             # implicitly added
             # noinspection PyUnusedLocal
