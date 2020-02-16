@@ -372,6 +372,71 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
     return objs
 
 
+RE_BEITRAG = r"Mitgliedsbeitrag 20\d\d-\d\d"
+
+
+def translate_bank_statements(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
+    objs = []
+    account = pycroft_model.Account(
+        name="Hochschulstraße",
+        type="BANK_ASSET",
+        legacy=False,
+    )
+    bank_account = pycroft_model.BankAccount(
+        name="HSS-Konto",
+        bank="Ostsächsische Sparkasse Dresden",
+        account_number="3120241937",
+        routing_number="85050300",
+        iban="DE40850503003120241937",
+        bic="OSDDDE81XXX",
+        fints_endpoint="https://banking-sn5.s-fints-pt-sn.de/fints30",
+        account=account,
+    )
+    objs.append(bank_account)
+
+    # TODO import bank statements && associate to users wherever possible
+    for log in ctx.abe_session.query(abe_model.AccountStatementLog).all():
+        assert isinstance(log, abe_model.AccountStatementLog)
+        activity = pycroft_model.BankAccountActivity(
+            bank_account=bank_account,
+            amount=log.amount,
+            reference=log.purpose,
+            # `log.timestamp` probably resembles `valid_on`, but there's no other information
+            # so `imported_at` and `posted_on` aren't exact, but “close enough”
+            imported_at=log.timestamp,
+            valid_on=log.timestamp.date(),
+            posted_on=log.timestamp.date(),
+            other_account_number="NO NUMBER GIVEN",
+            other_routing_number="NO NUMBER GIVEN",
+            other_name=log.payer,  # log.name is a heuristic for abe that's irrelevant here
+            # the split is going to be added if we know a relationship to an account
+            # split = relationship(Split, foreign_keys=(transaction_id, account_id),
+        )
+        objs.append(activity)
+        # TODO if `account` is set & has not been imported, warn
+        # TODO if `account` is set & has been imported, create transaction && splits
+        # TODO if `account` is not set but `name` is, create a transaction
+        #  to a „deleted user“ account
+        # TODO if `account` is not set and `name` is neither, info on unmatched transaction
+
+    return objs
+
+
+@reg.requires_function(translate_bank_statements)
+@reg.provides(pycroft_model.Transaction, pycroft_model.Split, pycroft_model.BankAccountActivity)
+def translate_fees(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
+    objs: List[pycroft_model.ModelBase] = []
+
+    # TODO add AccountFeeRelation to model
+    for fee_rel in []:
+        # TODO import membership fees
+        pass
+
+    # TODO warn on balance mismatch (abe-proclaimed vs actual)
+
+    return objs
+
+
 def maybe_fix_mail(mail: str, logger: Logger) -> str:
     if ".@" not in mail:
         return mail
