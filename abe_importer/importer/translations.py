@@ -508,9 +508,18 @@ def create_user_transaction(log, user_account, hss_account, activity):
 @reg.provides(pycroft_model.Transaction, pycroft_model.Split, pycroft_model.BankAccountActivity)
 def translate_fees(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
     objs: List[pycroft_model.ModelBase] = []
+    num_errors = 0
+
+    membership_account = ctx.pycroft_session.query(pycroft_model.Config).one().membership_fee_account
 
     for fee_rel in ctx.abe_session.query(abe_model.AccountFeeRelation).all():
         assert isinstance(fee_rel, abe_model.AccountFeeRelation)
+        try:
+            pycroft_user = data.users[fee_rel.account_name]
+        except KeyError:
+            ctx.logger.warning("Skipping fee of non-imported account %s", fee_rel.account_name)
+            continue
+
         is_membership_fee = fee_rel.fee.description.startswith("Mitgliedsbeitrag")
 
         if is_membership_fee:
@@ -525,6 +534,7 @@ def translate_fees(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
 
     # TODO warn on balance mismatch (abe-proclaimed vs actual)
 
+    _maybe_abort(num_errors, ctx.logger)
     return objs
 
 
