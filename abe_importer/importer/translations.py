@@ -445,21 +445,9 @@ def translate_bank_statements(ctx: Context, data: IntermediateData) -> List[Pycr
                 num_errors += 1
                 continue
 
-            transaction = pycroft_model.Transaction(
-                author_id=ROOT_ID,
-                description=log.purpose,
-                posted_at=log.timestamp,
-                valid_on=log.timestamp.date(),
+            transaction, user_split, bank_split = create_user_transaction(
+                log, user_account, hss_account, activity
             )
-
-            # implicitly added
-            # noinspection PyUnusedLocal
-            user_split = pycroft_model.Split(transaction=transaction, amount=-log.amount,
-                                             account=user_account)
-            # implicitly added
-            bank_split = pycroft_model.Split(transaction=transaction, amount=log.amount,
-                                             account=hss_account)
-            activity.split = bank_split
             assert len(transaction.splits) == 2
             assert len({s.account for s in transaction.splits})
 
@@ -476,21 +464,9 @@ def translate_bank_statements(ctx: Context, data: IntermediateData) -> List[Pycr
                 )
                 data.deleted_finance_accounts[log.name] = account
                 objs.append(account)
-            transaction = pycroft_model.Transaction(
-                author_id=ROOT_ID,
-                description=log.purpose,
-                posted_at=log.timestamp,
-                valid_on=log.timestamp.date(),
+            transaction, former_user_split, bank_split = create_user_transaction(
+                log, account, hss_account, activity
             )
-            # implicitly added
-            # noinspection PyUnusedLocal
-            former_user_split = pycroft_model.Split(transaction=transaction, amount=-log.amount,
-                                                    account=account)
-            # implicitly added
-            # noinspection PyUnusedLocal
-            bank_split = pycroft_model.Split(transaction=transaction, amount=log.amount,
-                                             account=hss_account)
-            activity.split = bank_split
             assert len(transaction.splits) == 2
             objs.append(transaction)
 
@@ -511,6 +487,21 @@ def translate_bank_statements(ctx: Context, data: IntermediateData) -> List[Pycr
 
     _maybe_abort(num_errors, ctx.logger)
     return objs
+
+
+def create_user_transaction(log, user_account, hss_account, activity):
+    transaction = pycroft_model.Transaction(
+        author_id=ROOT_ID,
+        description=log.purpose,
+        posted_at=log.timestamp,
+        valid_on=log.timestamp.date(),
+    )
+    user_split = pycroft_model.Split(transaction=transaction, amount=-log.amount,
+                                     account=user_account)
+    bank_split = pycroft_model.Split(transaction=transaction, amount=log.amount,
+                                     account=hss_account)
+    activity.split = bank_split
+    return transaction, user_split, bank_split
 
 
 @reg.requires_function(translate_bank_statements)
