@@ -504,6 +504,9 @@ def create_user_transaction(log, user_account, hss_account, activity):
     return transaction, user_split, bank_split
 
 
+ALLOWANCE_ACCOUNT_ID = 356
+
+
 @reg.requires_function(translate_bank_statements)
 @reg.provides(pycroft_model.Transaction, pycroft_model.Split, pycroft_model.BankAccountActivity)
 def translate_fees(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
@@ -511,6 +514,7 @@ def translate_fees(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
     num_errors = 0
 
     membership_account = ctx.pycroft_session.query(pycroft_model.Config).one().membership_fee_account
+    allowance_account = ctx.pycroft_session.query(pycroft_model.Account).get(ALLOWANCE_ACCOUNT_ID)
 
     for fee_rel in ctx.abe_session.query(abe_model.AccountFeeRelation).all():
         assert isinstance(fee_rel, abe_model.AccountFeeRelation)
@@ -524,33 +528,59 @@ def translate_fees(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
 
         if is_membership_fee:
             fee_timestamp = fee_rel.fee.timestamp
-            transaction = pycroft_model.Transaction(
-                author_id=ROOT_ID,
-                description=fee_rel.fee.description,
-                posted_at=fee_timestamp,
-                valid_on=fee_timestamp.date(),
+            transaction = create_membership_fee_transaction(
+                fee_rel, fee_rel.fee.amount,
+                pycroft_user.account, membership_account
             )
-            transaction.splits = [
-                pycroft_model.Split(amount=fee_rel.fee.amount, account=pycroft_user.account),
-                pycroft_model.Split(amount=-fee_rel.fee.amount, account=membership_account),
-            ]
+            objs.append(transaction)
             data.membership_months[fee_rel.account_name].append(
                 # effectively date_trunc('month', ~)
                 fee_timestamp.replace(day=0, hour=0, minute=0, second=0)
             )
-            objs.append(transaction)
             continue
 
         is_allowance = fee_rel.fee.description.startswith("Aufwandsentsch")
         if is_allowance:
-            # TODO create a transaction member account <-> allowances account
+            amount = fee_rel.fee.amount
+            transaction = pycroft_model.Transaction(
+                author_id=ROOT_ID,
+                description=fee_rel.fee.description,
+                posted_at=fee_rel.fee.timestamp,
+                valid_on=fee_rel.fee.timestamp.date(),
+            )
+            transaction.splits = [
+                pycroft_model.Split(amount=amount, account=pycroft_user.account),
+                pycroft_model.Split(amount=-amount, account=allowance_account),
+            ]
             continue
-        # TODO just import as a compensation member account <-> membership account
+
+        # otherwise: some kind of compensation booking, so just go against `membership_account`
+        transaction = create_membership_fee_transaction(
+            fee_rel, fee_rel.fee.amount,
+            pycroft_user.account, membership_account,
+        )
+        objs.append(transaction)
 
     # TODO warn on balance mismatch (abe-proclaimed vs actual)
 
     _maybe_abort(num_errors, ctx.logger)
     return objs
+
+
+def create_membership_fee_transaction(fee_rel: abe_model.AccountFeeRelation,
+                                      amount: float, user_account: pycroft_model.Account,
+                                      membership_account: pycroft_model.Account):
+    transaction = pycroft_model.Transaction(
+        author_id=ROOT_ID,
+        description=fee_rel.fee.description,
+        posted_at=fee_rel.fee.timestamp,
+        valid_on=fee_rel.fee.timestamp.date(),
+    )
+    transaction.splits = [
+        pycroft_model.Split(amount=amount, account=user_account),
+        pycroft_model.Split(amount=-amount, account=membership_account),
+    ]
+    return transaction
 
 
 def maybe_fix_mail(mail: str, logger: Logger) -> str:
