@@ -429,7 +429,7 @@ def translate_bank_statements(ctx: Context, data: IntermediateData) -> List[Pycr
                 valid_on=log.timestamp.date(),
             )
 
-            user_split = pycroft_model.Split(transaction=transaction, amount=log.amount,
+            user_split = pycroft_model.Split(transaction=transaction, amount=-log.amount,
                                              account=user.account)
             bank_split = pycroft_model.Split(transaction=transaction, amount=log.amount,
                                              account=hss_account)
@@ -452,7 +452,7 @@ def translate_bank_statements(ctx: Context, data: IntermediateData) -> List[Pycr
                 author_id=ROOT_ID,
                 description=log.purpose,
             )
-            former_user_split = pycroft_model.Split(transaction=transaction, amount=log.amount,
+            former_user_split = pycroft_model.Split(transaction=transaction, amount=-log.amount,
                                                     account=hss_account)
             bank_split = pycroft_model.Split(transaction=transaction, amount=log.amount,
                                              account=hss_account)
