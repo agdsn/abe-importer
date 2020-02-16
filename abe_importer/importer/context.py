@@ -1,3 +1,4 @@
+import datetime
 from dataclasses import dataclass, field
 from logging import Logger
 from typing import Dict, Callable, List, Any
@@ -41,6 +42,9 @@ class IntermediateData:
 
     # account_statement_log.name → Account
     deleted_finance_accounts: Dict[str, pycroft_model.Account] = dict_field()
+
+    # account-name → month of membership
+    membership_months: Dict[str, datetime] = dict_field()
 
 
 reg: TranslationRegistry[

@@ -523,7 +523,22 @@ def translate_fees(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
         is_membership_fee = fee_rel.fee.description.startswith("Mitgliedsbeitrag")
 
         if is_membership_fee:
-            # TODO import fee and add membership info to intermediate data
+            fee_timestamp = fee_rel.fee.timestamp
+            transaction = pycroft_model.Transaction(
+                author_id=ROOT_ID,
+                description=fee_rel.fee.description,
+                posted_at=fee_timestamp,
+                valid_on=fee_timestamp.date(),
+            )
+            transaction.splits = [
+                pycroft_model.Split(amount=fee_rel.fee.amount, account=pycroft_user.account),
+                pycroft_model.Split(amount=-fee_rel.fee.amount, account=membership_account),
+            ]
+            data.membership_months[fee_rel.account_name].append(
+                # effectively date_trunc('month', ~)
+                fee_timestamp.replace(day=0, hour=0, minute=0, second=0)
+            )
+            objs.append(transaction)
             continue
 
         is_allowance = fee_rel.fee.description.startswith("Aufwandsentsch")
