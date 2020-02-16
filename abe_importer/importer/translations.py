@@ -533,6 +533,8 @@ def translate_fees(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
                 pycroft_user.account, membership_account
             )
             objs.append(transaction)
+            if fee_rel.account_name not in data.membership_months:
+                data.membership_months[fee_rel.account_name] = []
             data.membership_months[fee_rel.account_name].append(
                 # effectively date_trunc('month', ~)
                 fee_timestamp.replace(day=0, hour=0, minute=0, second=0)
