@@ -142,13 +142,6 @@ class Subnet(Base):
     gateway = Column(pgtype.INET)
     vlan_name = Column(String)
     vlan_id = Column(Integer)
-    
-# To be used as `secondary` in some relationship
-account_fee_relation = Table(
-    'account_fee_relation', Base.metadata,
-    Column('account', String, ForeignKey(Account.account)),
-    Column('fee', Integer),  # TODO FKey to fee
-)
 
 
 class AccountProperty(Base):
@@ -202,9 +195,9 @@ class FeeInfo(Base):
 
 class AccountFeeRelation(Base):
     __tablename__ = 'account_fee_relation'
-    fee_id = Column(Integer, ForeignKey(FeeInfo.id))
+    fee_id = Column('fee', Integer, ForeignKey(FeeInfo.id), primary_key=True)
     fee = relationship(FeeInfo)
-    account_name = Column('account', String, ForeignKey(Account.account))
+    account_name = Column('account', String, ForeignKey(Account.account), primary_key=True)
     account = relationship(Account)
 
 
