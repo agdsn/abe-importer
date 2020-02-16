@@ -375,9 +375,11 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
 RE_BEITRAG = r"Mitgliedsbeitrag 20\d\d-\d\d"
 
 
+@reg.provides(pycroft_model.BankAccount, pycroft_model.BankAccountActivity)
 def translate_bank_statements(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
     objs = []
-    account = pycroft_model.Account(
+    num_errors = 0
+    hss_account = pycroft_model.Account(
         name="Hochschulstraße",
         type="BANK_ASSET",
         legacy=False,
@@ -390,11 +392,10 @@ def translate_bank_statements(ctx: Context, data: IntermediateData) -> List[Pycr
         iban="DE40850503003120241937",
         bic="OSDDDE81XXX",
         fints_endpoint="https://banking-sn5.s-fints-pt-sn.de/fints30",
-        account=account,
+        account=hss_account,
     )
     objs.append(bank_account)
 
-    # TODO import bank statements && associate to users wherever possible
     for log in ctx.abe_session.query(abe_model.AccountStatementLog).all():
         assert isinstance(log, abe_model.AccountStatementLog)
         activity = pycroft_model.BankAccountActivity(
@@ -413,12 +414,55 @@ def translate_bank_statements(ctx: Context, data: IntermediateData) -> List[Pycr
             # split = relationship(Split, foreign_keys=(transaction_id, account_id),
         )
         objs.append(activity)
-        # TODO if `account` is set & has not been imported, warn
-        # TODO if `account` is set & has been imported, create transaction && splits
-        # TODO if `account` is not set but `name` is, create a transaction
-        #  to a „deleted user“ account
-        # TODO if `account` is not set and `name` is neither, info on unmatched transaction
+        if log.account:
+            user = data.users.get(log.account_name)
+            if not user:
+                ctx.logger.error("We have a transaction (id %d) to non-imported account '%s'",
+                                 log.id, log.account_name)
+                num_errors += 1
+                continue
 
+            transaction = pycroft_model.Transaction(
+                author_id=ROOT_ID,
+                description=log.purpose,
+                posted_at=log.timestamp,
+                valid_on=log.timestamp.date(),
+            )
+
+            user_split = pycroft_model.Split(transaction=transaction, amount=log.amount,
+                                             account=user.account)
+            bank_split = pycroft_model.Split(transaction=transaction, amount=log.amount,
+                                             account=hss_account)
+            activity.split = bank_split
+
+            objs.extend([transaction, user_split, bank_split])
+            continue
+
+        # account not set
+        if log.name:
+            account = data.deleted_finance_accounts.get(log.name)
+            if not account:
+                account = pycroft_model.Account(
+                    name=f"Account of deleted HSS user {log.name}",
+                    type="USER_ASSET",
+                )
+                data.deleted_finance_accounts[log.name] = account
+                objs.append(account)
+            transaction = pycroft_model.Transaction(
+                author_id=ROOT_ID,
+                description=log.purpose,
+            )
+            former_user_split = pycroft_model.Split(transaction=transaction, amount=log.amount,
+                                                    account=hss_account)
+            bank_split = pycroft_model.Split(transaction=transaction, amount=log.amount,
+                                             account=hss_account)
+            objs.extend([former_user_split, bank_split])
+            continue
+
+        # neither account nor name set
+        ctx.logger.warning("New unmatched transaction from statement log %d", log.id)
+
+    _maybe_abort(num_errors, ctx.logger)
     return objs
 
 

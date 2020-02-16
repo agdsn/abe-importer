@@ -39,6 +39,9 @@ class IntermediateData:
     # account-name → User
     users: Dict[str, pycroft_model.User] = dict_field()
 
+    # account_statement_log.name → Account
+    deleted_finance_accounts: Dict[str, pycroft_model.Account] = dict_field()
+
 
 reg: TranslationRegistry[
     Callable[[Context, IntermediateData], List[pycroft_model.ModelBase]],
