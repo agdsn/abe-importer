@@ -1,5 +1,7 @@
 import click
 import colorama
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import OperationalError
 
 from abe_importer.importer import do_import
 from abe_importer.importer.operational import ldap_view_too_old, refresh_ldap_view
@@ -25,6 +27,8 @@ def main(abe_uri_file: str, pycroft_uri_file: str, dry_run: bool, refresh: bool,
     logger_name = 'abe-importer'
     logger = setup_logger(logger_name, verbose)
 
+    check_connections(abe_session, pycroft_session, logger=logger)
+
     if refresh or ldap_view_too_old(abe_session):
         logger.warning("Ldap view is older than one day, refreshing…")
         logger.info("HINT: You can disable this with --no-refresh")
@@ -45,6 +49,16 @@ def main(abe_uri_file: str, pycroft_uri_file: str, dry_run: bool, refresh: bool,
 
     pycroft_session.add_all(objs)
     pycroft_session.commit()
+
+
+def check_connections(*sessions: Session, logger):
+    try:
+        for s in sessions:
+            s.execute("select 1")
+    except OperationalError:
+        # noinspection PyUnboundLocalVariable
+        logger.critical("Unable to connect to %s", s.get_bind())
+        exit(1)
 
 
 def read_uri(uri_file: str) -> str:
