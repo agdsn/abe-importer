@@ -1,9 +1,9 @@
 import ipaddr
-from sqlalchemy import Column, Integer, String as sqlaString, Boolean, ForeignKey, Table
+from sqlalchemy import Column, Integer, String as sqlaString, Boolean, ForeignKey
 from sqlalchemy.dialects import postgresql as pgtype
 from sqlalchemy.ext.declarative import as_declarative, DeclarativeMeta
-from sqlalchemy.types import Date, DateTime, TypeDecorator, Numeric
 from sqlalchemy.orm import relationship, backref, foreign, remote
+from sqlalchemy.types import Date, DateTime, TypeDecorator, Numeric
 
 
 @as_declarative(metaclass=DeclarativeMeta)
@@ -19,7 +19,7 @@ class String(TypeDecorator):
     impl = sqlaString
 
     def process_bind_param(self, value, dialect):
-         return value
+        return value
 
     def process_result_value(self, value, dialect):
         return value.rstrip() if value else value
@@ -29,7 +29,7 @@ class String(TypeDecorator):
 
 
 def id_pkey():
-   return Column(Integer, primary_key=True)
+    return Column(Integer, primary_key=True)
 
 
 class Building(Base):
@@ -133,7 +133,8 @@ class DisableRecord(Base):
     disable_category = Column(Integer)  # TODO FKey on DisableCategory.id
     timestamp_start = Column(DateTime(timezone=False))
     timestamp_end = Column(DateTime(timezone=False))
-    
+
+
 class Subnet(Base):
     __tablename__ = 'subnet'
     id = id_pkey()
@@ -252,7 +253,8 @@ class TrafficQuota(Base):
     daily_credit = Column(pgtype.BIGINT)
     max_credit = Column(pgtype.BIGINT)
     description = Column(String)
-    
+
+
 # update_notice probably not relevant
 class Rights(Base):
     __tablename__ = 'imp_rights'
