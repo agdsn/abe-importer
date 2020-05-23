@@ -84,7 +84,7 @@ def map_uid(uid: int):
 
 
 class LdapEntry(Base):
-    __tablename__ = 'imp_ldap_entry'
+    __tablename__ = 'imp_abe_ldap_matview'
     uid = Column(String, ForeignKey(Account.account), primary_key=True)
     account = relationship(Account, back_populates='ldap_entry', uselist=False)
     _uidnumber = Column('uidnumber', Integer)
