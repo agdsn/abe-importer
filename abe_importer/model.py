@@ -16,7 +16,14 @@ class Base:
 
 
 class String(TypeDecorator):
+    @property
+    def python_type(self):
+        return str
+
     impl = sqlaString
+
+    def process_literal_param(self, value, dialect):
+        return value
 
     def process_bind_param(self, value, dialect):
         return value
