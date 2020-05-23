@@ -29,9 +29,13 @@ def main(abe_uri_file: str, pycroft_uri_file: str, dry_run: bool, refresh: bool,
 
     check_connections(abe_session, pycroft_session, logger=logger)
 
-    if refresh or ldap_view_too_old(abe_session):
-        logger.warning("Ldap view is older than one day, refreshing…")
+    view_too_old = ldap_view_too_old(abe_session)
+    if refresh:
+        logger.info("Refreshing LDAP view due to CLI parameters…")
         logger.info("HINT: You can disable this with --no-refresh")
+    if view_too_old:
+        logger.warning("LDAP view is older than one day, forcing refresh…")
+    if refresh or view_too_old:
         refresh_ldap_view(abe_session)
         logger.info("…Done.")
     else:
