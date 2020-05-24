@@ -1,9 +1,12 @@
+import ipaddress
 import re
 from logging import Logger
 from typing import List, Optional
 
+import ipaddr
 from pycroft.helpers.i18n import deferred_gettext
 from pycroft.model import _all as pycroft_model
+from pycroft.model.host import MulticastFlagException
 
 from .. import model as abe_model
 from .context import reg, IntermediateData, Context
@@ -389,6 +392,91 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
 
     # TODO warn on people with neither access nor pycroft mapping
     _maybe_abort(num_errors, ctx.logger)
+    return objs
+
+
+@reg.provides(pycroft_model.IP, pycroft_model.Interface, pycroft_model.Host)
+def translate_devices(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
+    objs = []
+    for (acc, user) in data.users.items():
+        objs.extend(_translate_account_devices(acc, user, ctx, data))
+    return objs
+
+
+def _translate_account_devices(acc: abe_model.Account, user: pycroft_model.User, ctx: Context,
+                               data: IntermediateData) -> List[PycroftBase]:
+    # TODO add Host/Interface(w/MAC)/IP:
+    # IF user has MAC
+    objs: List[PycroftBase] = []
+    if len(acc.macs) > 1:
+        ctx.logger.warning("User %s has %d macs: %s. Choosing the first one.",
+                           acc.account, len(acc.macs), "/".join(acc.macs))
+
+    if len(acc.ips) > 1:
+        ctx.logger.warning("User %s has %d ips: %s. Choosing the first one.",
+                           acc.account, len(acc.ips), "/".join(acc.ips))
+    if acc.macs:
+        [mac] = acc.macs
+
+        if not acc.ips:
+            objs.append(pycroft_model.UserLogEntry(
+                message=f"Unused MAC address from abe: {mac.mac}",
+                user=user,
+                author_id=ROOT_ID,
+            ))
+        else:
+            ip = ipaddress.IPv4Address(acc.ips[0].ip)
+            host = pycroft_model.Host(owner=user, room=user.room)
+            try:
+                interface = pycroft_model.Interface(host=host, mac=mac.mac)
+            except MulticastFlagException:
+                ctx.logger.error("Mac %s of user %s has multicast bit set!",
+                                 mac.mac, acc.account)
+            else:
+                # TODO find subnet
+                # ip = pycroft_model.IP()
+                matching_subnets = [s for net, s in data.subnets.items()
+                                    if ip in net]
+                if not matching_subnets:
+                    ctx.logger.warning("User %s has ip %s which is in no subnet!",
+                                       acc.account, ip)
+                if len(matching_subnets) > 1:
+                    ctx.logger.error("IP %s in more than one subnet: %r", ip, matching_subnets)
+                ip = pycroft_model.IP(
+                    address=ipaddr.IPv4Address(str(ip)),
+                    interface=interface,
+                    subnet=matching_subnets[0],
+                )
+                objs.append(ip)
+    return objs
+
+
+@reg.provides(pycroft_model.Subnet, pycroft_model.VLAN)
+def translate_networks(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
+    ctx.logger.warning("Setting fake VLAN id 999 for `HSS46 vorne`!")
+    objs: List[PycroftBase] = []
+    for (string_addr, gateway, reserved_bottom, name, vid) in [
+        ('141.30.217.0/24', '141.30.217.1', 14, "HSS46 hinten", 217),
+        ('141.30.218.0/24', '141.30.218.1', 14, "HSS48 hinten", 218),
+        ('141.30.219.0/24', '141.30.219.1', 14, "HSS50", 219),
+        ('141.30.234.0/25', '141.30.234.1', 9, "HSS46 vorne", 999),
+        ('141.30.215.128/25', '141.30.215.129', 11, "HSS48 vorne", 215),
+        # wums?
+        # …141.30.234.224/25 -> only used ip: 141.30.234.243
+    ]:
+
+        subnet = pycroft_model.Subnet(
+            address=ipaddr.IPv4Network(string_addr),
+            gateway=gateway,
+            reserved_addresses_bottom=reserved_bottom,
+            reserved_addresses_top=0,
+            description=name,
+            vlan=pycroft_model.VLAN(name=name, vid=vid),
+        )
+        ctx.logger.info("Creating subnet '%s' (%s)", subnet.description, subnet.address)
+        objs.append(subnet)
+        data.subnets[ipaddress.IPv4Network(string_addr)] = subnet
+
     return objs
 
 

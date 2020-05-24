@@ -1,3 +1,4 @@
+import ipaddress
 from dataclasses import dataclass, field
 from datetime import datetime
 from logging import Logger
@@ -45,6 +46,9 @@ class IntermediateData:
 
     # account-name → month of membership
     membership_months: Dict[str, List[datetime]] = dict_field()
+
+    # IPv4Network → Subnet
+    subnets: Dict[ipaddress.IPv4Network, pycroft_model.Subnet] = dict_field()
 
 
 reg: TranslationRegistry[
