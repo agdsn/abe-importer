@@ -291,6 +291,10 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
             ctx.logger.warning("Renaming '%s' → '%s'", acc.account, chosen_login)
             login_has_been_sanitized = True
 
+        if acc.account == 'wums':
+            ctx.logger.warning("Skipping WUMS!  Remove this warning once that's been cleared.")
+            continue
+
         maybe_passwd_arg = {}
         unix_acc = None
         homedir_exists = False
