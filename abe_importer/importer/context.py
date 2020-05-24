@@ -8,6 +8,7 @@ from pycroft.model import _all as pycroft_model
 from sqlalchemy.orm import Session, Query
 
 from .tools import TranslationRegistry
+from .. import model as abe_model
 
 
 @dataclass
@@ -40,6 +41,8 @@ class IntermediateData:
 
     # account-name → User
     users: Dict[str, pycroft_model.User] = dict_field()
+
+    both_users: Dict[abe_model.Account, pycroft_model.User] = dict_field()
 
     # account_statement_log.name → Account
     deleted_finance_accounts: Dict[str, pycroft_model.Account] = dict_field()

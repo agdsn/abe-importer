@@ -362,6 +362,7 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
         user.unix_account = unix_acc
 
         data.users[acc.account] = user
+        data.both_users[acc] = user
 
         objs.extend([user, finance_account, unix_acc])
         objs.append(pycroft_model.UserLogEntry(
@@ -389,6 +390,7 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
                          acc.pycroft_login, acc.account)
 
         data.users[acc.account] = pycroft_user
+        data.both_users[acc] = pycroft_user
 
     # TODO warn on people with neither access nor pycroft mapping
     _maybe_abort(num_errors, ctx.logger)
@@ -398,7 +400,7 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
 @reg.provides(pycroft_model.IP, pycroft_model.Interface, pycroft_model.Host)
 def translate_devices(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
     objs = []
-    for (acc, user) in data.users.items():
+    for (acc, user) in data.both_users.items():
         objs.extend(_translate_account_devices(acc, user, ctx, data))
     return objs
 
