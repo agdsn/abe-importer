@@ -386,8 +386,13 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
                              acc.account, acc.pycroft_login)
             num_errors += 1
             continue
-        ctx.logger.debug("Associating pycroft user %s to account %s",
-                         acc.pycroft_login, acc.account)
+        ctx.logger.info("Associating pycroft user %s to account %s",
+                        acc.pycroft_login, acc.account)
+
+        if not pycroft_user.room and acc.access_id in data.access_rooms:
+            room = data.access_rooms[acc.access_id]
+            pycroft_user.room = room
+            pycroft_user.address = room.address
 
         data.users[acc.account] = pycroft_user
         data.both_users[acc] = pycroft_user
