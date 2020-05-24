@@ -15,7 +15,7 @@ from abe_importer.session import create_session
 @click.option('--pycroft-uri-file', default=".pycroft_uri")
 @click.option('--refresh/--no-refresh', default=True,
               help="Don't force a refresh of the LDAP view")
-@click.option('-n', '--dry-run',
+@click.option('-n', '--dry-run', is_flag=True,
               help="Don't write to the pycroft database")
 @click.option('-v', '--verbose', is_flag=True,
               help="Will raise the loglevel to DEBUG.")
