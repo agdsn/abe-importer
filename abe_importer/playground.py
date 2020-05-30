@@ -1,5 +1,8 @@
+from typing import List
+
 import colorama
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 
 from . import model as abe_model
 from .cli import read_uri, check_connections
@@ -25,10 +28,22 @@ def main():
         .select_from(abe_model.FeeInfo)
     )]
 
-    ctx.logger.info("Current descriptions:")
-    for desc in descs:
-        ctx.logger.info(desc)
+    # ctx.logger.info("Current descriptions:")
+    # for desc in descs:
+    #     ctx.logger.info(desc)
     ctx.logger.info("Latest month: %s", get_latest_month(descs))
+
+    all_accounts: List[abe_model.Account] = abe_session.query(abe_model.Account)\
+        .options(joinedload(abe_model.Account.booked_fees)).all()
+
+    ctx.logger.info("Fees of usesrs starting with pa:")
+    for a in all_accounts:
+        if not a.account.startswith("pak"):
+            continue
+
+        ctx.logger.info("Account %s has %d fees.", a, len(a.booked_fees))
+        for f in a.booked_fees:
+            ctx.logger.debug(f)
 
 
 if __name__ == '__main__':

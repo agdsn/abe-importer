@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import List
+
 import ipaddr
 from sqlalchemy import Column, Integer, String as sqlaString, Boolean, ForeignKey
 from sqlalchemy.dialects import postgresql as pgtype
@@ -77,6 +81,11 @@ class Account(Base):
     access = relationship(Access, primaryjoin=access_id == Access.id)
     use_cache = Column(Boolean, default=False)
     ldap_entry = relationship('LdapEntry', back_populates='account', uselist=False)
+
+    booked_fees: List[AccountFeeRelation] = relationship(
+        'AccountFeeRelation',
+        order_by='AccountFeeRelation.fee_id'
+    )
 
 
 def map_uid(uid: int):
@@ -204,9 +213,13 @@ class FeeInfo(Base):
 class AccountFeeRelation(Base):
     __tablename__ = 'account_fee_relation'
     fee_id = Column('fee', Integer, ForeignKey(FeeInfo.id), primary_key=True)
-    fee = relationship(FeeInfo)
+    fee = relationship(FeeInfo, lazy='joined')
     account_name = Column('account', String, ForeignKey(Account.account), primary_key=True)
-    account = relationship(Account)
+    account = relationship(Account, back_populates='booked_fees')#backref=backref('booked_fees', order_by='fee_id'))
+
+    def __str__(self):
+        return f"Fee {self.fee.description!r} at {self.fee.timestamp.date()} "\
+               f" ({self.fee.amount}€, #{self.fee_id})"
 
 
 class IpLog(Base):
