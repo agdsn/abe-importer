@@ -1,6 +1,7 @@
 import ipaddress
 from dataclasses import dataclass, field
 from datetime import datetime
+from functools import cached_property
 from logging import Logger
 from typing import Dict, Callable, List, Any
 
@@ -19,6 +20,10 @@ class Context:
 
     def query(self, *entities: Any, **kwargs: Any) -> Query:
         return self.abe_session.query(*entities, **kwargs)
+
+    @cached_property
+    def config(self) -> pycroft_model.Config:
+        return self.pycroft_session.query(pycroft_model.Config).one()
 
 
 def dict_field():
