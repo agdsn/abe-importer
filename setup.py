@@ -108,7 +108,7 @@ setup(
     # py_modules=['mypackage'],
 
     entry_points={
-        'console_scripts': ['abe_importer=abe_importer.cli:main'],
+        'console_scripts': ['abe_importer=abe_importer.cli:main', 'abe_test=abe_importer.playground:main'],
     },
     install_requires=REQUIRED,
     extras_require=EXTRAS,
