@@ -1,15 +1,18 @@
 import ipaddress
 import re
 from logging import Logger
-from typing import List, Optional
+from typing import List, Optional, Iterable
 
 import ipaddr
+from pycroft.helpers import interval
 from pycroft.helpers.i18n import deferred_gettext
 from pycroft.model import _all as pycroft_model
 from pycroft.model.host import MulticastFlagException
+from sqlalchemy import select
 
 from .context import reg, IntermediateData, Context
-from .membership import MEMBERSHIP_FEE_PATTERN, get_latest_month
+from .membership import MEMBERSHIP_FEE_PATTERN, get_latest_month, MEMBERSHIP_FEE_PREFIX, FeeMonth, \
+    descriptions_to_interval_set
 from .. import model as abe_model
 
 
@@ -682,16 +685,30 @@ def create_membership_fee_transaction(fee_rel: abe_model.AccountFeeRelation,
     return transaction
 
 
-@reg.provides(pycroft_model.Membership)
+@reg.provides(pycroft_model.Membership, pycroft_model.Group)
 def translate_memberships(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
     # gather latest month
-    latest_month = get_latest_month(ctx.abe_session.query(abe_model.FeeInfo).filter(
-        abe_model.FeeInfo.description.like(MEMBERSHIP_FEE_PATTERN)
-    ).add_column(abe_model.FeeInfo.description))
+    latest_month = get_latest_month(
+        d[0] for d in ctx.abe_session.execute(
+            select((abe_model.FeeInfo.description,))
+            .where(abe_model.FeeInfo.description.like(MEMBERSHIP_FEE_PATTERN))
+            .select_from(abe_model.FeeInfo)
+        )
+    )
 
     objs: List[PycroftBase] = []
     for acc, user in data.both_users.items():
-        objs.append()
+        descriptions = [desc for fee_rel in acc.booked_fees
+                        if (desc := fee_rel.fee.description).startswith(MEMBERSHIP_FEE_PREFIX)]
+        interval_set: Iterable[interval.Interval] \
+            = descriptions_to_interval_set(descriptions, latest_month)
+        objs.extend(
+            pycroft_model.Membership(group=ctx.config.member_group,
+                                     begins_at=i.begin,
+                                     ends_at=None if i.end is interval.PositiveInfinity else i.end,
+                                     user=user)
+            for i in interval_set
+        )
     return objs
 
 

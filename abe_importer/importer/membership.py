@@ -10,6 +10,7 @@ from dateutil.relativedelta import relativedelta
 from pycroft.helpers import interval
 
 MEMBERSHIP_FEE_PATTERN = "Mitgliedsbeitrag %-%"
+MEMBERSHIP_FEE_PREFIX = MEMBERSHIP_FEE_PATTERN.split(' ')[0]
 
 
 @total_ordering
@@ -56,6 +57,12 @@ def get_latest_month(descriptions: Iterable[str]) -> FeeMonth:
         return max(cur, FeeMonth.from_desc(new))
 
     return reduce(take_max, descriptions, FeeMonth(0, 0))
+
+
+def descriptions_to_interval_set(descriptions: List[str], latest_month: FeeMonth) \
+        -> interval.IntervalSet:
+    return interval.IntervalSet(FeeMonth.from_desc(d).to_interval(latest_month)
+                                for d in descriptions)
 
 
 def test_latest_month():
