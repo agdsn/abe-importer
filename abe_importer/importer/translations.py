@@ -8,8 +8,9 @@ from pycroft.helpers.i18n import deferred_gettext
 from pycroft.model import _all as pycroft_model
 from pycroft.model.host import MulticastFlagException
 
-from .. import model as abe_model
 from .context import reg, IntermediateData, Context
+from .membership import MEMBERSHIP_FEE_PATTERN, get_latest_month
+from .. import model as abe_model
 
 
 @reg.provides(pycroft_model.Site)
@@ -679,6 +680,19 @@ def create_membership_fee_transaction(fee_rel: abe_model.AccountFeeRelation,
         pycroft_model.Split(amount=-amount, account=membership_account),
     ]
     return transaction
+
+
+@reg.provides(pycroft_model.Membership)
+def translate_memberships(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
+    # gather latest month
+    latest_month = get_latest_month(ctx.abe_session.query(abe_model.FeeInfo).filter(
+        abe_model.FeeInfo.description.like(MEMBERSHIP_FEE_PATTERN)
+    ).add_column(abe_model.FeeInfo.description))
+
+    objs: List[PycroftBase] = []
+    for acc, user in data.both_users.items():
+        objs.append()
+    return objs
 
 
 def maybe_fix_mail(mail: str, logger: Logger) -> str:
