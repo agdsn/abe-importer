@@ -1,5 +1,21 @@
 # Abe Importer
 
+## Pycroft instance preparation
+You should navigate to your pycroft directory and check out the `abe_importer_prep` branch.
+
+On the pg-cluster:
+```shell script
+sudo -u postgres pg_dump -Fc -c --if-exists -n pycroft usermanagement > userman_pycroft.dump
+```
+Copy on your local machine and restore the dump:
+```shell script
+scp pg-cluster0.agdsn.network:userman_pycroft.dump pycroft_for_abe_importer.sql
+drc stop dev-app
+./restore_dump.sh  # do this before every import execution
+```
+
+The password get asked for is, of course, `password`.
+
 ## Set up 
 First, set up a tunnel to the pg-User
 cluster (assuming you have access to the 
