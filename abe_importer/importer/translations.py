@@ -731,6 +731,9 @@ def disable_record_to_membership(record: abe_model.DisableRecord,
     )
 
 
+GROUP_ID_FEE_FREE = 14
+
+
 @reg.provides(pycroft_model.Membership, pycroft_model.Group)
 def translate_memberships(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
     # gather latest month
@@ -767,8 +770,8 @@ def translate_memberships(ctx: Context, data: IntermediateData) -> List[PycroftB
 
             if record.category.as_enum == DisableEnum.Moved:
                 if record.timestamp_end:
-                    ctx.logger.warning("User '%s' has been moved out inbetween: [%s, %s)",
-                                       acc.account, record.timestamp_start, record.timestamp_end)
+                    ctx.logger.info("User '%s' has been moved out inbetween: [%s, %s)",
+                                    acc.account, record.timestamp_start, record.timestamp_end)
                     continue
                 # half-open disabling in „moved_out“
                 moved_out_since = record.timestamp_start
@@ -779,6 +782,23 @@ def translate_memberships(ctx: Context, data: IntermediateData) -> List[PycroftB
             except ValueError as e:
                 # yes, that actually happens…
                 ctx.logger.warning("Invalid interval: %s", str(e))
+
+        if acc.property.fee_free:
+            # add a fee_free membership
+            objs.append(pycroft_model.Membership(
+                group_id=GROUP_ID_FEE_FREE,
+                user=user,
+            ))
+
+        if not moved_out_since and not acc.property.active:
+            # should not happen, but just to be save, add a `Gesperrt` entry
+            ctx.logger.warning("User '%s' is not moved out (disabled), but inactive."
+                               " Adding a `Gesperrt` entry.",
+                               acc.account)
+            objs.append(pycroft_model.Membership(
+                group_id=GROUP_ID_GENERAL_BLOCKED,
+                user=user
+            ))
 
         for i in interval_set:
             if i.end is not interval.PositiveInfinity:

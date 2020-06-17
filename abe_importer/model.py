@@ -82,6 +82,7 @@ class Account(Base):
     access = relationship(Access, primaryjoin=access_id == Access.id)
     use_cache = Column(Boolean, default=False)
     ldap_entry = relationship('LdapEntry', back_populates='account', uselist=False)
+    property: AccountProperty
 
     booked_fees: List[AccountFeeRelation] = relationship(
         'AccountFeeRelation',
