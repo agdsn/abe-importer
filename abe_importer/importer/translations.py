@@ -31,10 +31,12 @@ PycroftBase = pycroft_model.ModelBase
 
 
 ROOT_ID = 0
+FEE_ACCOUNT_ID = 19
 
 
-@reg.provides(pycroft_model.Building)
+@reg.provides(pycroft_model.Building, satisfies=(pycroft_model.Building.fee_account,))
 def translate_building(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
+    # TODO ignore WUMS
     objs = []
 
     hss = pycroft_model.Site(name="Hochschulstraße")
@@ -48,6 +50,7 @@ def translate_building(ctx: Context, data: IntermediateData) -> List[PycroftBase
             street=b.street,
             number=b.number,
             site=hss,
+            fee_account_id=FEE_ACCOUNT_ID,
         )
         data.buildings[b.short_name] = new_building
         objs.append(new_building)
