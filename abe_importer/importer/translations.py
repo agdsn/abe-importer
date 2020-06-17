@@ -732,6 +732,7 @@ def disable_record_to_membership(record: abe_model.DisableRecord,
 
 
 GROUP_ID_FEE_FREE = 14
+GROUP_ID_ORG = 1
 
 
 @reg.provides(pycroft_model.Membership, pycroft_model.Group)
@@ -790,13 +791,9 @@ def translate_memberships(ctx: Context, data: IntermediateData) -> List[PycroftB
                 user=user,
             ))
 
-        if not moved_out_since and not acc.property.active:
-            # should not happen, but just to be save, add a `Gesperrt` entry
-            ctx.logger.warning("User '%s' is not moved out (disabled), but inactive."
-                               " Adding a `Gesperrt` entry.",
-                               acc.account)
+        if acc.property.active:
             objs.append(pycroft_model.Membership(
-                group_id=GROUP_ID_GENERAL_BLOCKED,
+                group_id=GROUP_ID_ORG,
                 user=user
             ))
 
