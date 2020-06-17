@@ -154,7 +154,7 @@ class Subnet(Base):
 class AccountProperty(Base):
     __tablename__ = 'account_property'
     account_name = account_fkey(primary_key=True)
-    account = relationship(Account, backref=backref("property", uselist=False))
+    account = relationship(Account, backref=backref("property", uselist=False, lazy='joined'))
     active = Column(Boolean)
     fee_free = Column(Boolean)
     port_config = Column(String)
@@ -213,10 +213,10 @@ class DisableRecord(Base):
     __tablename__ = 'disable_record'
     id = id_pkey()
     account_name = account_fkey()
-    account = relationship(Account, backref=backref('disable_records'))
+    account = relationship(Account, backref=backref('disable_records', lazy='joined'))
     info = Column(String)
     disable_category = Column(Integer, ForeignKey(DisableCategory.id))
-    category: DisableCategory = relationship(DisableCategory)
+    category: DisableCategory = relationship(DisableCategory, lazy='joined')
     timestamp_start = Column(DateTime(timezone=False))
     timestamp_end = Column(DateTime(timezone=False))
 
