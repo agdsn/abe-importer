@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum, auto
 from typing import List
 
 import ipaddr
@@ -140,17 +141,6 @@ class Mac(Base):
     active = Column(Boolean, default=True)
 
     
-class DisableRecord(Base):
-    __tablename__ = 'disable_record'
-    id = id_pkey()
-    account_name = account_fkey()
-    account = relationship(Account, backref=backref('disable_records'))
-    info = Column(String)
-    disable_category = Column(Integer)  # TODO FKey on DisableCategory.id
-    timestamp_start = Column(DateTime(timezone=False))
-    timestamp_end = Column(DateTime(timezone=False))
-
-
 class Subnet(Base):
     __tablename__ = 'subnet'
     id = id_pkey()
@@ -183,7 +173,29 @@ class AccountStatementLog(Base):
     account_name = account_fkey()
     account = relationship(Account, backref=backref("statements"))
     name = Column(String)
-    
+
+
+class DisableEnum(Enum):
+    Custom = auto()
+    Payment = auto()
+    Traffic = auto()
+    DsgvoTransmission = auto()
+    DsgvoDenial = auto()
+    Moved = auto()
+
+    _map = {
+        "Custom Category": Custom,
+        "No Membership Fee": Payment,
+        "No Traffic remaining": Traffic,
+        "DSGVO nicht zustellbar": DsgvoTransmission,
+        "DSGVO Widerspruch": DsgvoDenial,
+        "Ausgezogen": Moved,
+    }
+
+    @classmethod
+    def from_description(cls, desc: str):
+        return cls._map[desc.strip()]
+
 
 class DisableCategory(Base):
     __tablename__ = 'disable_category'
@@ -191,7 +203,23 @@ class DisableCategory(Base):
     nat = Column(Boolean)
     disable_port = Column(Boolean)
     description = Column(String)
-     
+
+    @property
+    def as_enum(self) -> DisableEnum:
+        return DisableEnum.from_description(self.description)
+
+
+class DisableRecord(Base):
+    __tablename__ = 'disable_record'
+    id = id_pkey()
+    account_name = account_fkey()
+    account = relationship(Account, backref=backref('disable_records'))
+    info = Column(String)
+    disable_category = Column(Integer, ForeignKey(DisableCategory.id))
+    category: DisableCategory = relationship(DisableCategory)
+    timestamp_start = Column(DateTime(timezone=False))
+    timestamp_end = Column(DateTime(timezone=False))
+
 
 class ExternalResidence(Base):
     __tablename__ = 'imp_external_residence'
