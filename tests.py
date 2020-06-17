@@ -1,6 +1,7 @@
 from unittest import mock
 
 from abe_importer.importer.translations import sanitize_username, maybe_fix_mail
+from abe_importer.model import DisableEnum
 
 
 def test_sanitize_username():
@@ -14,3 +15,7 @@ def test_mail_fix():
     assert maybe_fix_mail("user.@foo.bar", logger) == "user_@foo.bar"
     assert maybe_fix_mail("user._@foo.bar", logger) == "user._@foo.bar"
     assert maybe_fix_mail("nor_mal.user@foo.bar", logger) == "nor_mal.user@foo.bar"
+
+
+def test_category_enum():
+    assert DisableEnum.from_description("Ausgezogen") == DisableEnum.Moved

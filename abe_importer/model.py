@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import List
+from typing import List, Type
 
 import ipaddr
 from sqlalchemy import Column, Integer, String as sqlaString, Boolean, ForeignKey
@@ -183,18 +183,18 @@ class DisableEnum(Enum):
     DsgvoDenial = auto()
     Moved = auto()
 
-    _map = {
-        "Custom Category": Custom,
-        "No Membership Fee": Payment,
-        "No Traffic remaining": Traffic,
-        "DSGVO nicht zustellbar": DsgvoTransmission,
-        "DSGVO Widerspruch": DsgvoDenial,
-        "Ausgezogen": Moved,
-    }
-
     @classmethod
-    def from_description(cls, desc: str):
-        return cls._map[desc.strip()]
+    def from_description(cls: Type[DisableEnum], desc: str):
+        _map = {
+            "Custom Category": cls.Custom,
+            "No Membership Fee": cls.Payment,
+            "No Traffic remaining": cls.Traffic,
+            "DSGVO nicht zustellbar": cls.DsgvoTransmission,
+            "DSGVO Widerspruch": cls.DsgvoDenial,
+            "Ausgezogen": cls.Moved,
+        }
+
+        return _map[desc.strip()]
 
 
 class DisableCategory(Base):
