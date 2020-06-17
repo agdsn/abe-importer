@@ -14,6 +14,7 @@ from .context import reg, IntermediateData, Context
 from .membership import MEMBERSHIP_FEE_PATTERN, get_latest_month, MEMBERSHIP_FEE_PREFIX, FeeMonth, \
     descriptions_to_interval_set
 from .. import model as abe_model
+from ..model import DisableEnum
 
 
 @reg.provides(pycroft_model.Site)
@@ -688,6 +689,48 @@ def create_membership_fee_transaction(fee_rel: abe_model.AccountFeeRelation,
     return transaction
 
 
+GROUP_ID_TRAFFIC_EXHAUSTED = 12
+GROUP_ID_GENERAL_BLOCKED = 10
+GROUP_ID_ABUSE = 7
+GROUP_ID_PAYMENT_IN_DEFAULT = 5
+
+
+def disable_record_to_membership(record: abe_model.DisableRecord,
+                                 pycroft_user: pycroft_model.User) \
+        -> pycroft_model.Membership:
+    assert record.category.as_enum != DisableEnum.Moved
+
+    group_id: int
+    if record.category.as_enum == DisableEnum.Custom:
+        # maybe abuse: for that, look at the info
+        if any(x in record.info.lower() for x in {'abuse', 'absue', 'bot'}):
+            group_id = GROUP_ID_ABUSE
+        else:
+            group_id = GROUP_ID_GENERAL_BLOCKED
+    elif record.category.as_enum == DisableEnum.Payment:
+        group_id = GROUP_ID_PAYMENT_IN_DEFAULT
+    elif record.category.as_enum == DisableEnum.Traffic:
+        group_id = GROUP_ID_TRAFFIC_EXHAUSTED
+    elif record.category.as_enum == DisableEnum.DsgvoTransmission:
+        group_id = GROUP_ID_GENERAL_BLOCKED
+    elif record.category.as_enum == DisableEnum.DsgvoDenial:
+        group_id = GROUP_ID_GENERAL_BLOCKED
+    else:
+        raise ValueError(f"Unknown disable category {record.category}")
+
+    if record.timestamp_end is not None and record.timestamp_start > record.timestamp_end:
+        raise ValueError(
+            f"Invalid interval for record {record.id}: "
+            f"[{record.timestamp_start}, {record.timestamp_end})"
+        )
+    return pycroft_model.Membership(
+        group_id=group_id,
+        user=pycroft_user,
+        begins_at=record.timestamp_start,
+        ends_at=record.timestamp_end,
+    )
+
+
 @reg.provides(pycroft_model.Membership, pycroft_model.Group)
 def translate_memberships(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
     # gather latest month
@@ -705,13 +748,56 @@ def translate_memberships(ctx: Context, data: IntermediateData) -> List[PycroftB
                         if (desc := fee_rel.fee.description).startswith(MEMBERSHIP_FEE_PREFIX)]
         interval_set: Iterable[interval.Interval] \
             = descriptions_to_interval_set(descriptions, latest_month)
-        objs.extend(
-            pycroft_model.Membership(group=ctx.config.member_group,
-                                     begins_at=i.begin,
-                                     ends_at=None if i.end is interval.PositiveInfinity else i.end,
-                                     user=user)
-            for i in interval_set
-        )
+
+        moved_out_since = None
+        for record in acc.disable_records:
+            assert isinstance(record, abe_model.DisableRecord)
+            objs.append(
+                pycroft_model.UserLogEntry(
+                    author_id=ROOT_ID,
+                    user=user,
+                    message=(
+                        deferred_gettext("Disabled in abe: '{info}' ('{category}')")
+                        .format(info=record.info, category=record.category.description)
+                        .to_json()
+                    ),
+                    created_at=record.timestamp_start,
+                )
+            )
+
+            if record.category.as_enum == DisableEnum.Moved:
+                if record.timestamp_end:
+                    ctx.logger.warning("User '%s' has been moved out inbetween: [%s, %s)",
+                                       acc.account, record.timestamp_start, record.timestamp_end)
+                    continue
+                # half-open disabling in „moved_out“
+                moved_out_since = record.timestamp_start
+                continue
+
+            try:
+                objs.append(disable_record_to_membership(record, user))
+            except ValueError as e:
+                # yes, that actually happens…
+                ctx.logger.warning("Invalid interval: %s", str(e))
+
+        for i in interval_set:
+            if i.end is not interval.PositiveInfinity:
+                ends_at = i.end
+            elif moved_out_since is None:
+                # half-open, not moved out
+                ends_at = None
+            else:
+                # half-open, moved out
+                ends_at = max(i.end, moved_out_since)
+
+            objs.append(
+                pycroft_model.Membership(
+                    group=ctx.config.member_group,
+                    begins_at=i.begin,
+                    ends_at=ends_at,
+                    user=user,
+                )
+            )
     return objs
 
 
