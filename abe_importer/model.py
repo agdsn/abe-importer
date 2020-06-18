@@ -79,14 +79,15 @@ class Account(Base):
     entry_date = Column(Date)
     date_of_birth = Column(Date)
     access_id = Column('access', Integer, ForeignKey(Access.id))
-    access = relationship(Access, primaryjoin=access_id == Access.id)
+    access = relationship(Access, primaryjoin=access_id == Access.id, lazy='joined')
     use_cache = Column(Boolean, default=False)
     ldap_entry = relationship('LdapEntry', back_populates='account', uselist=False)
     property: AccountProperty
 
     booked_fees: List[AccountFeeRelation] = relationship(
         'AccountFeeRelation',
-        order_by='AccountFeeRelation.fee_id'
+        order_by='AccountFeeRelation.fee_id',
+        lazy='joined',
     )
 
 
