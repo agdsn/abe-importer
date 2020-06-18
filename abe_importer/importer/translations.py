@@ -274,6 +274,7 @@ def uid_mapping(abe_uid: int) -> int:
 @reg.provides(pycroft_model.Account)
 @reg.provides(pycroft_model.UnixAccount)
 def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
+    # TODO translate external residences (`Account.residence`)
     objs = []
     num_errors = 0
     ctx.logger.info("There are %s accounts in total.",
@@ -612,6 +613,7 @@ def create_user_transaction(log, user_account, hss_account, activity):
 
 
 ALLOWANCE_ACCOUNT_ID = 356
+CORRECTION_ACCOUNT_ID = 156
 
 
 @reg.requires_function(translate_bank_statements)
@@ -663,6 +665,7 @@ def translate_fees(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
         # otherwise: some kind of compensation booking, so just go against `membership_account`
         transaction = create_membership_fee_transaction(
             fee_rel, fee_rel.fee.amount,
+            # TODO use correction account instead of allowance
             pycroft_user.account, membership_account,
         )
         objs.append(transaction)
@@ -800,7 +803,7 @@ def translate_memberships(ctx: Context, data: IntermediateData) -> List[PycroftB
         for i in interval_set:
             if i.end is not interval.PositiveInfinity:
                 ends_at = i.end
-            elif moved_out_since is None:
+            elif moved_out_since is None:  # TODO OR if no active mac
                 # half-open, not moved out
                 ends_at = None
             else:
