@@ -2,13 +2,14 @@ import ipaddress
 import re
 from datetime import timezone
 from logging import Logger
-from typing import List, Optional, Iterable
+from typing import List, Optional, Iterable, Tuple
 
 import ipaddr
 from pycroft.helpers import interval
 from pycroft.helpers.i18n import deferred_gettext
 from pycroft.model import _all as pycroft_model
 from pycroft.model.host import MulticastFlagException
+from pycroft import lib as pycroft_lib
 from sqlalchemy import select, func
 
 from .context import reg, IntermediateData, Context
@@ -310,11 +311,17 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
         maybe_passwd_arg = {}
         unix_acc = None
         homedir_exists = False
+        is_pyc_user_obsolete, pyc_user = is_pycroft_unixacc_obsolete(acc.account, ctx)
+
         if acc.ldap_entry:
             abe_homedir = acc.ldap_entry.homedirectory
             homedir_exists = bool(ctx.pycroft_session.query(pycroft_model.UnixAccount)
                                      .filter_by(home_directory=abe_homedir).one_or_none())
             if homedir_exists:
+                if is_pyc_user_obsolete:
+                    ctx.logger.warning("Conflicting wu-account is obsolescent: %s", acc.account)
+                else:
+                    pass
                 ctx.logger.warning("Moving %(h)s to %(h)s-hss", {'h': abe_homedir})
                 abe_homedir = f"{abe_homedir}-hss"
 
@@ -329,11 +336,8 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
                                " Password and unix_account won't be set.",
                                acc.account)
 
-        user_exists = bool(ctx.pycroft_session
-                                    .query(pycroft_model.User)
-                                    .filter_by(login=chosen_login)
-                                    .one_or_none())
-        if user_exists:
+        user_exists = pyc_user is not None
+        if user_exists and chosen_login == pyc_user.login:
             ctx.logger.warning("Renaming %(acc)s → %(acc)s-hss", {'acc': chosen_login})
             chosen_login = f"{chosen_login}-hss"
 
@@ -409,6 +413,16 @@ def translate_accounts(ctx: Context, data: IntermediateData) -> List[PycroftBase
     # TODO warn on people with neither access nor pycroft mapping
     _maybe_abort(num_errors, ctx.logger)
     return objs
+
+
+def is_pycroft_unixacc_obsolete(username: str, ctx: Context) -> Tuple[bool, pycroft_model.User]:
+    """Return whether the user is obsolete in pycroft"""
+    user: pycroft_model.User = ctx.pycroft_session.query(pycroft_model.User)\
+        .filter_by(login=username).one_or_none()
+    if not user:
+        return False, user
+
+    return not user.member_of(ctx.config.member_group) and not user.has_property('ldap'), user
 
 
 @reg.provides(pycroft_model.IP, pycroft_model.Interface, pycroft_model.Host)
