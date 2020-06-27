@@ -809,6 +809,7 @@ def translate_memberships(ctx: Context, data: IntermediateData) -> List[PycroftB
             ))
 
         if acc.property.active:
+            ctx.logger.warning("New ORG: %s", user.login)
             objs.append(pycroft_model.Membership(
                 group_id=GROUP_ID_ORG,
                 user=user
