@@ -1,5 +1,6 @@
 import ipaddress
 import re
+from datetime import timezone
 from logging import Logger
 from typing import List, Optional, Iterable
 
@@ -8,7 +9,7 @@ from pycroft.helpers import interval
 from pycroft.helpers.i18n import deferred_gettext
 from pycroft.model import _all as pycroft_model
 from pycroft.model.host import MulticastFlagException
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from .context import reg, IntermediateData, Context
 from .membership import MEMBERSHIP_FEE_PATTERN, get_latest_month, MEMBERSHIP_FEE_PREFIX, FeeMonth, \
@@ -777,7 +778,7 @@ def translate_memberships(ctx: Context, data: IntermediateData) -> List[PycroftB
                                     acc.account, record.timestamp_start, record.timestamp_end)
                     continue
                 # half-open disabling in „moved_out“
-                moved_out_since = record.timestamp_start
+                moved_out_since = record.timestamp_start.astimezone(timezone.utc)
                 continue
 
             try:
@@ -799,24 +800,38 @@ def translate_memberships(ctx: Context, data: IntermediateData) -> List[PycroftB
                 user=user
             ))
 
-        for i in interval_set:
-            if i.end is not interval.PositiveInfinity:
-                ends_at = i.end
-            elif moved_out_since is None:  # TODO OR if no active mac
-                # half-open, not moved out
-                ends_at = None
-            else:
-                # half-open, moved out
-                ends_at = max(i.end, moved_out_since)
+        should_be_terminated = any([
+            len(user.hosts) == 0,
+            moved_out_since is not None,
+        ])
 
-            objs.append(
-                pycroft_model.Membership(
-                    group=ctx.config.member_group,
-                    begins_at=i.begin,
-                    ends_at=ends_at,
-                    user=user,
+        for i in interval_set:
+            if i.end:
+                ends_at = i.end
+            else:
+                # eventually crop a half-open interval
+                if should_be_terminated:
+                    ends_at = moved_out_since or ctx.now
+                else:
+                    ends_at = None
+
+            if ends_at and ends_at < i.begin:
+                ctx.logger.warning("Useless `Member` membership for %s during [%r, %r)",
+                                   user.login, i.begin, ends_at)
+                ends_at = i.begin
+            try:
+                objs.append(
+                    pycroft_model.Membership(
+                        group=ctx.config.member_group,
+                        begins_at=i.begin,
+                        ends_at=ends_at,
+                        user=user,
+                    )
                 )
-            )
+            except (TypeError, AssertionError):
+                ctx.logger.critical("Cannot construct `Member` membership for %s during [%r, %r)",
+                                    user.login, i.begin, ends_at)
+                raise
     return objs
 
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Iterable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import total_ordering, reduce
 from typing import List, Optional
 
@@ -39,7 +39,7 @@ class FeeMonth:
 
     @property
     def beginning(self) -> datetime:
-        return datetime(year=self.year, month=self.month, day=1)
+        return datetime(year=self.year, month=self.month, day=1, tzinfo=timezone.utc)
 
     @property
     def next_beginning(self) -> datetime:
