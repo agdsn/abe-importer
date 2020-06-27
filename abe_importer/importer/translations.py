@@ -486,11 +486,11 @@ def translate_networks(ctx: Context, data: IntermediateData) -> List[PycroftBase
     ctx.logger.warning("Setting fake VLAN id 999 for `HSS46 vorne`!")
     objs: List[PycroftBase] = []
     for (string_addr, gateway, reserved_bottom, name, vid) in [
-        ('141.30.217.0/24', '141.30.217.1', 14, "HSS46 hinten", 217),
-        ('141.30.218.0/24', '141.30.218.1', 14, "HSS48 hinten", 218),
-        ('141.30.219.0/24', '141.30.219.1', 14, "HSS50", 219),
-        ('141.30.234.0/25', '141.30.234.1', 9, "HSS46 vorne", 999),
-        ('141.30.215.128/25', '141.30.215.129', 11, "HSS48 vorne", 215),
+        ('141.30.217.0/24', '141.30.217.1', 14, "HSS46a", 217),  # 46 hinten
+        ('141.30.218.0/24', '141.30.218.1', 14, "HSS48a", 218),  # 48 hinten
+        # ('141.30.219.0/24', '141.30.219.1', 14, "HSS50", 219),  # IGH
+        ('141.30.234.0/25', '141.30.234.1', 9, "HSS46b", 999),  # 46 vorne
+        ('141.30.215.128/25', '141.30.215.129', 11, "HSS48b", 215),  # 48 vorne
         # wums?
         # …141.30.234.224/25 -> only used ip: 141.30.234.243
     ]:
