@@ -644,7 +644,7 @@ def translate_fees(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
         try:
             pycroft_user = data.users[fee_rel.account_name]
         except KeyError:
-            ctx.logger.warning("Skipping fee of non-imported account %s", fee_rel.account_name)
+            ctx.logger.info("Skipping fee of non-imported account %s", fee_rel.account_name)
             continue
 
         is_membership_fee = fee_rel.fee.description.startswith("Mitgliedsbeitrag")
