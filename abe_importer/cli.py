@@ -55,8 +55,12 @@ def main(abe_uri_file: str, pycroft_uri_file: str, dry_run: bool, refresh: bool,
         exit(0)
         return
 
-    pycroft_session.add_all(objs)
-    pycroft_session.commit()
+    if click.confirm(f'Do you want to add {len(objs)} new entries to the pycroft repository?',
+                     abort=True):
+        pycroft_session.add_all(objs)
+        pycroft_session.commit()
+    else:
+        pycroft_session.rollback()
 
 
 def check_connections(*sessions: Session, logger):

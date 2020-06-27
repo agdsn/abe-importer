@@ -51,6 +51,9 @@ class ObjectRegistry(Generic[T]):
                                f" Please call flush before using the objects!")
         return iter(self.objs)
 
+    def __len__(self):
+        return len(self.objs)
+
     def insert_hook(self, value):
         if any(is_interesting(value) for is_interesting in self.object_filters):
             self.logger.info("Got interesting object %r", value)
