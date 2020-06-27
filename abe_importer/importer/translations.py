@@ -37,7 +37,6 @@ FEE_ACCOUNT_ID = 19
 
 @reg.provides(pycroft_model.Building, satisfies=(pycroft_model.Building.fee_account,))
 def translate_building(ctx: Context, data: IntermediateData) -> List[PycroftBase]:
-    # TODO ignore WUMS
     objs = []
 
     hss = pycroft_model.Site(name="Hochschulstraße")
