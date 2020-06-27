@@ -763,8 +763,10 @@ def translate_memberships(ctx: Context, data: IntermediateData) -> List[PycroftB
         )
     )
 
+
     objs: List[PycroftBase] = []
     for acc, user in data.both_users.items():
+        has_any_member_membership = False
         descriptions = [desc for fee_rel in acc.booked_fees
                         if (desc := fee_rel.fee.description).startswith(MEMBERSHIP_FEE_PREFIX)]
         interval_set: Iterable[interval.Interval] \
@@ -843,10 +845,22 @@ def translate_memberships(ctx: Context, data: IntermediateData) -> List[PycroftB
                         user=user,
                     )
                 )
+                has_any_member_membership = True
             except (TypeError, AssertionError):
                 ctx.logger.critical("Cannot construct `Member` membership for %s during [%r, %r)",
                                     user.login, i.begin, ends_at)
                 raise
+
+        if not has_any_member_membership and user.hosts:
+            ctx.logger.warning("User %s does not have any Mitglied memberships, adding open default",
+                               user.login)
+            objs.append(
+                pycroft_model.Membership(
+                    group=ctx.config.member_group,
+                    begins_at=user.registered_at,
+                    user=user,
+                )
+            )
     return objs
 
 
