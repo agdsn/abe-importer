@@ -7,7 +7,9 @@ from abe_importer.importer import do_import
 from abe_importer.importer.operational import ldap_view_too_old, refresh_ldap_view
 from abe_importer.importer.translations import ImportException
 from abe_importer.logging import setup_logger
-from abe_importer.session import create_session
+from abe_importer.session import create_session, create_scoped_session
+
+from pycroft.model import session as pyc_session
 
 
 @click.command()
@@ -22,7 +24,9 @@ from abe_importer.session import create_session
 def main(abe_uri_file: str, pycroft_uri_file: str, dry_run: bool, refresh: bool, verbose: bool):
     colorama.init()
     abe_session = create_session(read_uri(uri_file=abe_uri_file))
-    pycroft_session = create_session(read_uri(pycroft_uri_file))
+    _pyc_scoped_session = create_scoped_session(read_uri(pycroft_uri_file))
+    pyc_session.set_scoped_session(_pyc_scoped_session)
+    pycroft_session = pyc_session.session
 
     logger_name = 'abe-importer'
     logger = setup_logger(logger_name, verbose)
